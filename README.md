@@ -8,8 +8,11 @@
   <strong> GESTIÓN DE MÁQUINAS VIRTUALES </strong>
 </p>
 
-Para comenzar con la **Práctica 1**, no se nos ha entregado directamente el enunciado, sino que se ha subdividido la entrega en pequeñas tareas con dificultad incremental, las llamaremos **ejemplos**, que nos guiarán hasta llegar a completar la Prácitca 1. Para completar ésta, previamente tendremos descargados docker engine junto con docker compose.
+Para comenzar con la **Práctica 1**, no se nos ha entregado directamente el enunciado, sino que se ha subdividido la entrega en pequeñas tareas con dificultad incremental, las llamaremos **ejemplos**, que nos guiarán hasta llegar a completar la Prácitca 1. 
 
+Para completar la Práctica 1, previamente tendremos descargados **Docker Engine** junto con **Docker Compose**. Por preferencia personal, he decidido <u>no utilizar **Docker Desktop**</u>, al considerar que, desde una perspectiva de aprendizaje, resulta más beneficioso trabajar directamente mediante comandos. De esta forma, puedo comprender mejor qué sucede en cada paso, en lugar de utilizar una interfaz gráfica que simplifica y oculta parte de la funcionalidad, dificultando la comprensión de lo que ocurre realmente en segundo plano.
+
+### Seguimiento
  - [Ejemplo 1](#Ejemplo-1)
  - [Ejemplo 2](#Ejemplo-2)
  - [Ejemplo 3](#Ejemplo-3)
