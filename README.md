@@ -8,9 +8,15 @@
   <strong> GESTIÓN DE MÁQUINAS VIRTUALES </strong>
 </p>
 
-Para comenzar con la Práctica 1, no se nos ha entregado directamente el enunciado, sino que se ha subdividido ....
+Para comenzar con la **Práctica 1**, no se nos ha entregado directamente el enunciado, sino que se ha subdividido la entrega en pequeñas tareas con dificultad incremental, las llamaremos **ejemplos**, que nos guiarán hasta llegar a completar la Prácitca 1. Para completar ésta, previamente tendremos descargados docker engine junto con docker compose.
 
+ - [Ejemplo 1](#Ejemplo-1)
+ - [Ejemplo 2](#Ejemplo-2)
+ - [Ejemplo 3](#Ejemplo-3)
+ - [Ejemplo 4](#Ejemplo-4)
+ - [Ejemplo 5](#Ejemplo-5)
 
+## Ejemplo 1
 
 Primero de todo ejecutamos los dos siguientes comandos:
 
@@ -18,10 +24,7 @@ Primero de todo ejecutamos los dos siguientes comandos:
 docker pull nginx
 ```
 
-Descarga desde Docker Hub la imagen de Nginx (revisando previamente que es seguro).
-Ahora si ejecutamos `docker images veremos que tenemos la imagen descargada. 
-
-Nginx es un servidor web y proxy inverso de código abierto y alto rendimiento.
+Descarga desde Docker Hub la imagen de Nginx (un servidor web y proxy inverso de código abierto y alto rendimiento), revisando previamente que es seguro claro 🤣. Ahora, si ejecutamos `docker images` veremos que tenemos la imagen descargada.
 
 ```bash
 docker run --name mynginx -d -p 8080:80 nginx
@@ -48,3 +51,10 @@ Ahora que hemos terminado, podemos parar la ejecución del contenedor con el com
 Acto seguido desechamos el contenedor eliminándolo con el comando docker rm mynginx. Cabe mencionar que debemos tener muy en cuenta que TODOS los datos que estén dentro de la capa writable serán ELIMINADOS.
 En cambio si tenemos guardados los datos en un VOLUMEN NO serán eliminados!
 Finalmente, eliminaremos la imagen guardada en cache mediante el comando docker rmi nginx.
+
+
+
+## Ejemplo 2
+
+eooeoeoe
+eeeiie
