@@ -16,7 +16,7 @@ A lo largo de esta práctica, iré comentando paso a paso cómo he realizado cad
 
 ### Seguimiento
  - [Ejemplo 1](#ejemplo-1---descarga-y-ejecución-de-un-contenedor)
- - [Ejemplo 2](#Ejemplo-2)
+ - [Ejemplo 2](#ejemplo-2---construcción-de-una-imagen-personalizada)
  - [Ejemplo 3](#Ejemplo-3)
  - [Ejemplo 4](#Ejemplo-4)
  - [Ejemplo 5](#Ejemplo-5)
@@ -31,7 +31,7 @@ Primero de todo ejecutamos los dos siguientes comandos:
 docker pull nginx
 ```
 
-Descarga desde Docker Hub la imagen de Nginx (un servidor web y proxy inverso de código abierto y alto rendimiento), revisando previamente que es seguro claro 🤣. Ahora, si ejecutamos `docker images` veremos que tenemos la imagen descargada.
+Descarga desde [Docker Hub](https://hub.docker.com) la imagen de [Nginx](https://hub.docker.com/hardened-images/catalog/dhi/nginx) (un servidor web y proxy inverso de código abierto y alto rendimiento), revisando previamente que es seguro claro 🤣. Ahora, si ejecutamos `docker images` veremos que tenemos la imagen descargada.
 
 
 ```bash
@@ -54,7 +54,7 @@ al final del comando anterior, veremos el historial completo de contenedores (in
 Comprobado que el contenedor se encuentra correctamente en ejecución, podemos abrir nuestro navegador de confianza y acceder a http://localhost:8080. Si todo ha funcionado correctamente, se mostrará la página web de bienvenida de **Nginx**. ¡Ya tenemos nuestro servidor web funcionando! 🤩
 
 <p align="center">
-  <img src="./Practica1/imagesP1/bienvenidaNginx.png" 
+  <img src="Practica1/imagesP1/bienvenidaNginx.png" 
        alt="Página web de bienvenida de Nginx">
 </p>
 
@@ -71,11 +71,115 @@ Ahora que hemos terminado, podemos parar la ejecución del contenedor con el com
 
 ---
 
-## Ejemplo 2
+## Ejemplo 2 - Construcción de una imagen personalizada
+
+### ⚠️ **A partir de aquí las instrucciones están INCOMPLETAS, serán completadas más adelante al terminar y tener tiempo para hacerlo, sólamente habrá explicación muy breve** ⚠️
+
+En este ejemplo, conseguiremos construir una imagen personalizada a partir de un Dockerfile, que tendrá el siguiente contenido:
+
+```
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html/index.html
+```
+
+*Explicar que hace FROM, :latest y por que es conveniente o no y COPY
+
+
+Además añadiremos el archivo index.html con el código de una página web personalizada:
+
+```
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>Mi Primer Contenedor Docker</title>
+</head>
+<body>
+	<h1>¡Hola, Docker!</h1>
+</body>
+</html>
+```
+
+Ahra que tenemos los archivos necesarios que hemos personalizado ya podemos crear la imagen y ejecutar un contenedor de esa imagen con los comandos:
+
+```
+docker build -t mynginximage .
+```
+
+* describir el comando, -t y .
+
+Y ejecutamos el contenedor:
+
+```
+docker run --name mynginximage -d -p 8080:80 mynginximage
+```
+
+* describir el comando
+
+Finalmente, ahora que el contenedor está ejecutandose, si vamos a http://localhost:8080 en nuestro navegador de confianza veremos nuestra página web personalizada funciona correctamente! 🤩
+
+<p align="center">
+  <img src="Practica1/imagesP1/hiDockerWeb.png" 
+       alt="Página web personalizada">
+</p>
+
+* Explicación 
+
+* Limpieza igual que en el exemplo 1
+
+---
+
+## Ejemplo 3 - Web y base de datos
+
+En este ejemplo simularemos una pequeña app con una web y una base de datos mediante docker compose.
+
+Para ello tendremos que añadir un archivo nuevo llamado docker-compose.yml con el siguiente código:
+
+```
+version: '3.9'
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    networks:
+      - internal_net
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: testdb
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - internal_net
+
+networks:
+  internal_net:
+
+volumes:
+  db_data:
+```
 
 
 
-## Ejemplo 3
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Ejemplo 4
 
