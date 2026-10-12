@@ -20,7 +20,10 @@ A lo largo de esta práctica, iré comentando paso a paso cómo he realizado cad
  - [Ejemplo 3](#ejemplo-3---web-y-base-de-datos)
  - [Ejemplo 4](#ejemplo-4---variables-de-entorno)
  - [Ejemplo 5](#ejemplo-5---makefile)
- - [Práctica 1](#practica-1)
+
+---
+
+- **[Práctica 1 🐳](#practica-1-despliegue-de-aplicaciones-multi-entorno)**
 
  ---
 
@@ -357,13 +360,64 @@ Ya hemos terminado los ejercicios previos antes de la práctica! Ahora debemos e
 
 ---
 
-## Práctica 1 🐳
+# Práctica 1 🐳 - Despliegue de aplicaciones multi-entorno
+
+## Introducción
+
+El objetivo de esta práctica es diseñar y desplegar una aplicación multicontenedor utilizando Docker y Docker Compose, simulando un entorno de despliegue real.
+
+La arquitectura estará compuesta por una aplicación web, una base de datos y un servicio de caché, este último presente únicamente en el entorno de producción. Se configurarán dos entornos independientes, desarrollo (`dev`) y producción (`prod`), adaptando los servicios y sus configuraciones a las necesidades de cada uno.
+
+A lo largo de la práctica se trabajarán conceptos fundamentales del ecosistema Docker, como la orquestación de contenedores, la gestión de variables de entorno, la persistencia de datos mediante volúmenes, la comunicación entre servicios a través de redes internas, las comprobaciones de estado (*healthchecks*) y la automatización de tareas mediante un `Makefile`.
+
+El propósito final es obtener una infraestructura organizada, reproducible y fácil de gestionar, aplicando buenas prácticas de configuración y seguridad en el despliegue de aplicaciones con Docker Compose.
+
+## Preparación para el proyecto
+
+Antes de adentrarnos a generar archivos y documentos para la práctica, vamos a organizar qué utilizaremos. Seguiremos la siguiente estructura 
+
+| Tecnología | Función |
+| :--- | ---: |
+| Python + Flask | Aplicación web y lógica del servidor |
+| HTML, CSS y JavaScript | Interfaz de la página web |
+| MySQL | Base de datos |
+| Redis | Caché |
+| Docker Compose | Orquestar los contenedores de la aplicación y los servicios|
+| Makefile | Automatizar las operaciones habituales |
+
+La organización de las carpetas quedará tal que así:
+
+```
+Practica1/
+├── app/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── templates/
+│       └── index.html
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── .env.dev
+├── .env.prod
+├── .gitignore
+├── Makefile
+└── README.md
+```
+
+## Diseño de la aplicación web
 
 
+## Implementación de MySQL
 
+## Creamos el Dockerfile de Flask
 
+## Configuración del entorno de desarrollo (dev)
 
+## Añadir Redis en producción
 
+## Implementación
+
+## Creación de Makefile para la automatización
 
 
 
