@@ -247,7 +247,7 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 
-/* Acciones de inventario: registrar una baja de una unidad o eliminar toda la ficha. */
+/* Acciones de inventario: aumentar/reducir stock o eliminar toda la ficha. */
 .fish-card-actions {
   display: flex;
   align-items: center;
@@ -272,7 +272,7 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
   transition: background .16s ease, border-color .16s ease, color .16s ease;
 }
 .stock-action {
-  flex: 1 1 82px;
+  flex: 1 1 72px;
   background: #edf8f7;
   border-color: #d8eeeb;
   color: #087b79;
@@ -280,6 +280,24 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
 .stock-action:hover:not(:disabled) {
   background: #dff2ef;
   border-color: #b7e2dc;
+}
+.stock-action--increase {
+  background: #eef7ff;
+  border-color: #d7e9fa;
+  color: #2168a5;
+}
+.stock-action--increase:hover:not(:disabled) {
+  background: #e0efff;
+  border-color: #bddcf7;
+}
+.stock-action--decrease {
+  background: #fff8e9;
+  border-color: #f2e6c9;
+  color: #93691b;
+}
+.stock-action--decrease:hover:not(:disabled) {
+  background: #fff1d4;
+  border-color: #ead7aa;
 }
 .stock-action:disabled {
   cursor: not-allowed;
@@ -312,5 +330,5 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
 
 @media (max-width: 760px) {
   .fish-card-actions { gap: 6px; margin-top: 11px; padding-top: 9px; }
-  .stock-action, .delete-action { min-height: 32px; padding-inline: 7px; font-size: 9px; }
+  .stock-action, .delete-action { min-height: 32px; padding-inline: 6px; font-size: 9px; }
 }

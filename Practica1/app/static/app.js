@@ -141,14 +141,22 @@
     const actions = document.createElement('div');
     actions.className = 'fish-card-actions';
 
+    const incrementButton = document.createElement('button');
+    incrementButton.className = 'stock-action stock-action--increase';
+    incrementButton.type = 'button';
+    incrementButton.dataset.action = 'increment-stock';
+    incrementButton.title = `Añadir una unidad de ${name} al stock`;
+    incrementButton.setAttribute('aria-label', `Añadir una unidad de ${name} al stock`);
+    incrementButton.innerHTML = '<span class="stock-action-symbol" aria-hidden="true">+</span><span>Añadir 1</span>';
+
     const decrementButton = document.createElement('button');
-    decrementButton.className = 'stock-action';
+    decrementButton.className = 'stock-action stock-action--decrease';
     decrementButton.type = 'button';
     decrementButton.dataset.action = 'decrement-stock';
     decrementButton.disabled = currentStock <= 0;
     decrementButton.title = `Registrar la salida de una unidad de ${name}`;
     decrementButton.setAttribute('aria-label', `Registrar baja de una unidad de ${name}`);
-    decrementButton.innerHTML = '<span class="stock-action-symbol" aria-hidden="true">−</span><span>1 unidad</span>';
+    decrementButton.innerHTML = '<span class="stock-action-symbol" aria-hidden="true">−</span><span>Retirar 1</span>';
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'delete-action';
@@ -158,7 +166,7 @@
     deleteButton.setAttribute('aria-label', `Eliminar la ficha completa de ${name} del catálogo`);
     deleteButton.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h11M6 4.5V2.7h4v1.8m-6.2 0 .6 8.6h7.2l.6-8.6M6.5 6.5v4.5m3-4.5v4.5"/></svg><span>Eliminar</span>';
 
-    actions.append(decrementButton, deleteButton);
+    actions.append(incrementButton, decrementButton, deleteButton);
     content.append(actions);
   }
 
@@ -232,10 +240,18 @@
       dot.title = available ? 'Disponible' : 'Agotado';
     }
 
+    const name = cardName(card);
+    const incrementButton = card.querySelector('[data-action="increment-stock"]');
+    if (incrementButton) {
+      incrementButton.disabled = !Number.isSafeInteger(newStock);
+      incrementButton.title = `Añadir una unidad de ${name} al stock`;
+      incrementButton.setAttribute('aria-label', `Añadir una unidad de ${name} al stock`);
+    }
+
     const decrementButton = card.querySelector('[data-action="decrement-stock"]');
     if (decrementButton) {
       decrementButton.disabled = !available;
-      decrementButton.title = `Registrar la salida de una unidad de ${cardName(card)}`;
+      decrementButton.title = `Registrar la salida de una unidad de ${name}`;
     }
   }
 
@@ -246,18 +262,25 @@
     if (!card) return;
     const name = cardName(card);
 
-    if (button.dataset.action === 'decrement-stock') {
+    if (button.dataset.action === 'increment-stock') {
+      const stock = Number(card.dataset.stock || 0);
+      if (!Number.isSafeInteger(stock) || stock < 0 || stock >= Number.MAX_SAFE_INTEGER) {
+        showToast('No se puede aumentar más el stock de este producto.');
+        return;
+      }
+      setCardStock(card, stock + 1);
+      applyFilters();
+      showToast(`Stock de ${name} aumentado en una unidad. El cambio aún no se ha guardado en MySQL.`);
+    } else if (button.dataset.action === 'decrement-stock') {
       const stock = Number(card.dataset.stock || 0);
       if (stock <= 0) {
         showToast(`${name} ya está agotado.`);
         return;
       }
-      if (!window.confirm(`¿Registrar la salida de una unidad de «${name}» por venta o pérdida?`)) return;
       setCardStock(card, stock - 1);
       applyFilters();
-      showToast(`Stock de ${name} actualizado en la demostración. Aún no se ha guardado en MySQL.`);
+      showToast(`Stock de ${name} reducido en una unidad. El cambio aún no se ha guardado en MySQL.`);
     } else if (button.dataset.action === 'delete-fish') {
-      if (!window.confirm(`¿Eliminar por completo la ficha de «${name}» del catálogo? Esta acción no equivale a restar una unidad del stock.`)) return;
       card.remove();
       applyFilters();
       showToast(`Ficha de ${name} eliminada de la demostración. Aún no se ha eliminado de MySQL.`);
