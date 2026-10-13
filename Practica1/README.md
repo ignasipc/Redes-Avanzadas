@@ -512,6 +512,14 @@ Los datos de ejemplo se almacenan en MySQL: ya no son tarjetas ficticias escrita
 ## Creación de Makefile para la automatización
 
 
+El mejor uso de caché que puedo realizar es utilizar imagenes para los peces, y si en el caso de que se tumbe la base de datos solamente se utilice la información básica como el stock, imagen y nombre común.
+Es necesario de alguna manera mostrar que el servicio está caido y que los cambios no serán guardados ya que sólo la caché está disponible. Tambien se puede hacer que los botones queden deshabilitados. 
+Si hago [localhost/ ](http://localhost:8081/status).
+Hacer un Make setup para que el profe esté contento.
+Debemos saber en todo momento Como? Cuando? Es decir, que saber el pq en todo momento
+Separar tambien la práctica de los ejemplos!!!
+
+
 
 
 
