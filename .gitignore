@@ -1,6 +1,6 @@
 # Archivo de configuración local
 .env
-
+.env.*
 
 # Carpeta de ejercicios de aprendizaje previos a la/s prácticas
 Previa

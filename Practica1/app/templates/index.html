@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-environment="dev">
+<html lang="es" data-environment="{{ environment }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -49,15 +49,15 @@
     <section class="summary-row" aria-label="Resumen del inventario">
       <div class="summary-card">
         <span class="summary-icon summary-icon--blue" aria-hidden="true">♧</span>
-        <div><span class="summary-label">Especies en catálogo</span><strong id="species-count">6</strong></div>
+        <div><span class="summary-label">Especies en catálogo</span><strong id="species-count">0</strong></div>
       </div>
       <div class="summary-card">
         <span class="summary-icon summary-icon--green" aria-hidden="true">◉</span>
-        <div><span class="summary-label">Unidades en stock</span><strong id="stock-count">57</strong></div>
+        <div><span class="summary-label">Unidades en stock</span><strong id="stock-count">0</strong></div>
       </div>
       <div class="summary-card">
         <span class="summary-icon summary-icon--gold" aria-hidden="true">€</span>
-        <div><span class="summary-label">Productos agotados</span><strong id="out-of-stock-count">1</strong></div>
+        <div><span class="summary-label">Productos agotados</span><strong id="out-of-stock-count">0</strong></div>
       </div>
     </section>
 
@@ -65,7 +65,7 @@
       <div class="catalog-toolbar">
         <div class="catalog-title-wrap">
           <h2 id="catalog-title">Todos los peces</h2>
-          <span class="result-count" id="result-count">6 productos</span>
+          <span class="result-count" id="result-count">0 productos</span>
         </div>
         <div class="filters" role="search" aria-label="Filtrar catálogo">
           <label class="search-box">
@@ -100,66 +100,46 @@
         </div>
       </div>
 
+      {% if catalog_error %}
+      <div class="catalog-error" id="catalog-error" role="alert">{{ catalog_error }}</div>
+      {% endif %}
+
       <div class="fish-grid" id="fish-grid" aria-live="polite">
-        <article class="fish-card" data-name="pez payaso" data-species="amphiprion ocellaris" data-water="salada" data-temperature="calida" data-stock="8">
-          <div class="fish-visual fish-visual--coral"><span aria-hidden="true">🐠</span><span class="water-chip">Agua salada</span></div>
+        {% for fish in fish_list %}
+        <article class="fish-card"
+                 data-id="{{ fish.id }}"
+                 data-name="{{ fish.name|lower }}"
+                 data-species="{{ fish.species|lower }}"
+                 data-water="{{ fish.water_type }}"
+                 data-temperature="{{ fish.temperature }}"
+                 data-stock="{{ fish.stock }}">
+          <div class="fish-visual fish-visual--{% if fish.water_type == 'salada' %}coral{% elif fish.temperature == 'fria' %}mint{% else %}aqua{% endif %}">
+            <span aria-hidden="true">{% if fish.water_type == 'salada' %}🐠{% else %}🐟{% endif %}</span>
+            <span class="water-chip">{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Agua salada{% endif %}</span>
+          </div>
           <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Pez payaso</h3><span class="stock-dot stock-dot--available" title="Disponible"></span></div>
-            <p class="scientific-name">Amphiprion ocellaris</p>
-            <div class="fish-tags"><span>Agua cálida</span><span>Marino</span></div>
-            <div class="fish-card-footer"><div><span class="price">24,99 €</span><span class="price-caption">por unidad</span></div><div class="stock-count"><strong>8</strong><span>en stock</span></div></div>
+            <div class="fish-title-row">
+              <h3>{{ fish.name }}</h3>
+              <span class="stock-dot {% if fish.stock > 0 %}stock-dot--available{% else %}stock-dot--empty{% endif %}" title="{% if fish.stock > 0 %}Disponible{% else %}Agotado{% endif %}"></span>
+            </div>
+            <p class="scientific-name">{{ fish.species }}</p>
+            <div class="fish-tags">
+              <span>{% if fish.temperature == 'fria' %}Agua fría{% else %}Agua cálida{% endif %}</span>
+              <span>{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Marino{% endif %}</span>
+            </div>
+            <div class="fish-card-footer">
+              <div>
+                <span class="price">{{ ('%.2f'|format(fish.price))|replace('.', ',') }} €</span>
+                <span class="price-caption">por unidad</span>
+              </div>
+              <div class="stock-count {% if fish.stock == 0 %}stock-count--empty{% endif %}">
+                <strong>{{ fish.stock }}</strong>
+                <span>{% if fish.stock > 0 %}en stock{% else %}agotado{% endif %}</span>
+              </div>
+            </div>
           </div>
         </article>
-
-        <article class="fish-card" data-name="guppy" data-species="poecilia reticulata" data-water="dulce" data-temperature="calida" data-stock="12">
-          <div class="fish-visual fish-visual--aqua"><span aria-hidden="true">🐟</span><span class="water-chip">Agua dulce</span></div>
-          <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Guppy</h3><span class="stock-dot stock-dot--available" title="Disponible"></span></div>
-            <p class="scientific-name">Poecilia reticulata</p>
-            <div class="fish-tags"><span>Agua cálida</span><span>Vivíparo</span></div>
-            <div class="fish-card-footer"><div><span class="price">4,50 €</span><span class="price-caption">por unidad</span></div><div class="stock-count"><strong>12</strong><span>en stock</span></div></div>
-          </div>
-        </article>
-
-        <article class="fish-card" data-name="pez globo" data-species="diodon holocanthus" data-water="salada" data-temperature="calida" data-stock="3">
-          <div class="fish-visual fish-visual--sand"><span aria-hidden="true">🐡</span><span class="water-chip">Agua salada</span></div>
-          <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Pez globo</h3><span class="stock-dot stock-dot--available" title="Disponible"></span></div>
-            <p class="scientific-name">Diodon holocanthus</p>
-            <div class="fish-tags"><span>Agua cálida</span><span>Marino</span></div>
-            <div class="fish-card-footer"><div><span class="price">19,99 €</span><span class="price-caption">por unidad</span></div><div class="stock-count"><strong>3</strong><span>en stock</span></div></div>
-          </div>
-        </article>
-
-        <article class="fish-card" data-name="pez dorado" data-species="carassius auratus" data-water="dulce" data-temperature="fria" data-stock="5">
-          <div class="fish-visual fish-visual--gold"><span aria-hidden="true">🐠</span><span class="water-chip">Agua dulce</span></div>
-          <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Pez dorado</h3><span class="stock-dot stock-dot--available" title="Disponible"></span></div>
-            <p class="scientific-name">Carassius auratus</p>
-            <div class="fish-tags"><span>Agua fría</span><span>Agua dulce</span></div>
-            <div class="fish-card-footer"><div><span class="price">8,99 €</span><span class="price-caption">por unidad</span></div><div class="stock-count"><strong>5</strong><span>en stock</span></div></div>
-          </div>
-        </article>
-
-        <article class="fish-card" data-name="pez betta" data-species="betta splendens" data-water="dulce" data-temperature="calida" data-stock="0">
-          <div class="fish-visual fish-visual--violet"><span aria-hidden="true">🐟</span><span class="water-chip">Agua dulce</span></div>
-          <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Pez betta</h3><span class="stock-dot stock-dot--empty" title="Agotado"></span></div>
-            <p class="scientific-name">Betta splendens</p>
-            <div class="fish-tags"><span>Agua cálida</span><span>Agua dulce</span></div>
-            <div class="fish-card-footer"><div><span class="price">12,00 €</span><span class="price-caption">por unidad</span></div><div class="stock-count stock-count--empty"><strong>0</strong><span>agotado</span></div></div>
-          </div>
-        </article>
-
-        <article class="fish-card" data-name="neón chino" data-species="tanichthys albonubes" data-water="dulce" data-temperature="fria" data-stock="29">
-          <div class="fish-visual fish-visual--mint"><span aria-hidden="true">🐟</span><span class="water-chip">Agua dulce</span></div>
-          <div class="fish-card-content">
-            <div class="fish-title-row"><h3>Neón chino</h3><span class="stock-dot stock-dot--available" title="Disponible"></span></div>
-            <p class="scientific-name">Tanichthys albonubes</p>
-            <div class="fish-tags"><span>Agua fría</span><span>Agua dulce</span></div>
-            <div class="fish-card-footer"><div><span class="price">3,25 €</span><span class="price-caption">por unidad</span></div><div class="stock-count"><strong>29</strong><span>en stock</span></div></div>
-          </div>
-        </article>
+        {% endfor %}
       </div>
       <div class="empty-state" id="empty-state" hidden>
         <span class="empty-icon" aria-hidden="true">⌕</span>
@@ -171,7 +151,7 @@
 
     <footer class="page-footer">
       <span> AQUARIUM <span class="footer-separator">·</span> Gestión de inventario</span>
-      <span class="footer-note">Interfaz de demostración · Los cambios aún no se guardan en MySQL</span>
+      <span class="footer-note">Inventario almacenado en MySQL</span>
     </footer>
   </main>
 

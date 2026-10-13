@@ -332,3 +332,13 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
   .fish-card-actions { gap: 6px; margin-top: 11px; padding-top: 9px; }
   .stock-action, .delete-action { min-height: 32px; padding-inline: 6px; font-size: 9px; }
 }
+
+/* Mensaje cuando el catálogo no puede obtener datos desde MySQL. */
+.catalog-error {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #efc4bc;
+  border-radius: 8px;
+  background: #fff3f0;
+  color: #8f3024;
+}
