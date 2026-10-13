@@ -234,6 +234,12 @@
       dot.classList.toggle('stock-dot--empty', !available);
       dot.title = available ? 'Disponible' : 'Agotado';
     }
+    // La acción seleccionada se deshabilita mientras espera a Flask.
+    // Tras una respuesta correcta, hay que volver a habilitar ambos botones,
+    // manteniendo "Retirar 1" deshabilitado cuando el stock llega a cero.
+    const incrementButton = card.querySelector('[data-action="increment-stock"]');
+    if (incrementButton) incrementButton.disabled = false;
+
     const decrementButton = card.querySelector('[data-action="decrement-stock"]');
     if (decrementButton) decrementButton.disabled = !available;
   }
@@ -269,7 +275,12 @@
       }
     } catch (error) {
       showToast(error.message || 'No se ha podido actualizar el inventario.');
-      button.disabled = false;
+      if (button.isConnected) {
+        // Si falla una retirada y el stock es cero, conservar el botón deshabilitado.
+        button.disabled = action === 'decrement-stock'
+          ? Number(card.dataset.stock || 0) <= 0
+          : false;
+      }
     }
   }
 
