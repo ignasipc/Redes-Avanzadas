@@ -23,7 +23,7 @@ A lo largo de esta práctica, iré comentando paso a paso cómo he realizado cad
 
 ---
 
-- **[Práctica 1 🐳](#practica-1-despliegue-de-aplicaciones-multi-entorno)**
+- **[Práctica 1 🐳](#practica-1)**
 
  ---
 
@@ -360,6 +360,7 @@ Ya hemos terminado los ejercicios previos antes de la práctica! Ahora debemos e
 
 ---
 
+<a id="practica-1"></a>
 # Práctica 1 🐳 - Despliegue de aplicaciones multi-entorno
 
 ## Introducción
