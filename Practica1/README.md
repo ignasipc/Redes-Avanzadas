@@ -491,8 +491,15 @@ La interfaz también mostrará el estado de conexión de los servicios dependien
 
 De este modo, Aquarium servirá como aplicación de ejemplo para poner en práctica la orquestación de contenedores, la persistencia de datos, la comunicación entre servicios y la gestión de entornos con Docker Compose.
 
-
 ## Implementación de MySQL
+
+Vamos a conectar Aquarium con MySQL para que el catálogo deje de utilizar datos ficticios en el HTML y muestre los registros almacenados realmente en la base de datos. También he preparado las operaciones para que añadir peces, aumentar o reducir el stock y eliminar fichas persista en MySQL.
+
+El cambio fundamental es que Flask consulta MySQL y proporciona los resultados al HTML mediante Jinja2.
+
+El archivo `db/init.sql` crea la tabla y añade seis peces de ejemplo: guppy, pez payaso, pez globo, pez dorado, pez betta y neón chino. Así podremos probar la aplicación sin tener que introducir todos los registros manualmente. Cuando MySQL inicializa un volumen de datos vacío, la imagen oficial ejecuta los scripts de inicialización de `/docker-entrypoint-initdb.d`. Estos scripts se importan en la base de datos indicada por `MYSQL_DATABASE`.
+
+Los datos de ejemplo se almacenan en MySQL: ya no son tarjetas ficticias escritas en el HTML.
 
 ## Creamos el Dockerfile de Flask
 
