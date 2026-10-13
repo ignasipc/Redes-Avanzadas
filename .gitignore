@@ -7,3 +7,10 @@ Previa
 
 # Documentos no visibles
 Practica1/Ejemplo4Eliminado.png
+
+
+# Archivos propios de python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
