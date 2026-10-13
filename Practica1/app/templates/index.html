@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-environment="prod">
+<html lang="es" data-environment="dev">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,14 +20,14 @@
 
     <div class="system-status" aria-label="Estado de los servicios">
       <div class="status-item">
-        <span class="status-dot status-dot--ok" aria-hidden="true"></span>
+        <span class="status-dot status-dot--off" id="mysql-dot" aria-hidden="true"></span>
         <span class="status-label">MySQL</span>
-        <span class="status-value" id="mysql-status">Conectado</span>
+        <span class="status-value" id="mysql-status">Comprobando…</span>
       </div>
       <div class="status-item" id="redis-status-item">
-        <span class="status-dot status-dot--ok" id="redis-dot" aria-hidden="true"></span>
+        <span class="status-dot status-dot--off" id="redis-dot" aria-hidden="true"></span>
         <span class="status-label">Redis</span>
-        <span class="status-value" id="redis-status">Conectado</span>
+        <span class="status-value" id="redis-status">Comprobando…</span>
       </div>
       <span class="environment-tag" id="environment-tag">PRODUCCIÓN</span>
     </div>
@@ -86,6 +86,14 @@
               <option value="">Todas las temperaturas</option>
               <option value="fria">Agua fría</option>
               <option value="calida">Agua cálida</option>
+            </select>
+          </label>
+          <label class="select-wrap">
+            <span class="visually-hidden">Disponibilidad</span>
+            <select id="stock-filter">
+              <option value="">Cualquier disponibilidad</option>
+              <option value="available">En stock</option>
+              <option value="empty">Agotados</option>
             </select>
           </label>
           <button class="button button-quiet" id="clear-filters" type="button">Limpiar</button>
@@ -163,7 +171,7 @@
 
     <footer class="page-footer">
       <span> AQUARIUM <span class="footer-separator">·</span> Gestión de inventario</span>
-      <span class="footer-note">Los datos mostrados son de demostración</span>
+      <span class="footer-note">Interfaz de demostración · Los cambios aún no se guardan en MySQL</span>
     </footer>
   </main>
 
