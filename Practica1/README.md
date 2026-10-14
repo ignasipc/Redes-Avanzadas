@@ -112,7 +112,7 @@ La interfaz se desarrollará utilizando **HTML, CSS y JavaScript**, con una dist
 La siguiente imagen muestra el diseño propuesto para la aplicación:
 
 <p align="center">
-  <img src="Practica1/imagesP1/AquariumInventarioWeb.png" 
+  <img src="imagesP1/AquariumInventarioWeb.png" 
        alt="Página web del stock de la tienda de peces">
 </p>
 
