@@ -39,7 +39,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./db/images:/var/lib/mysql-files:ro
+      - ./db/images:/var/lib/mysql-files
     networks:
       - internal_net
     restart: unless-stopped
