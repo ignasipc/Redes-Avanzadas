@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-environment="{{ environment }}">
+<html lang="es" data-environment="{{ environment }}" data-offline-mode="{{ 'true' if offline_mode else 'false' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -40,7 +40,7 @@
         <h1>Catálogo de peces</h1>
         <p class="page-description">Consulta y gestiona los peces disponibles en la tienda.</p>
       </div>
-      <button class="button button-primary" id="open-modal" type="button">
+      <button class="button button-primary" id="open-modal" type="button" {% if offline_mode %}disabled{% endif %}>
         <span class="button-plus" aria-hidden="true">+</span>
         Añadir pez
       </button>
@@ -114,24 +114,24 @@
                  data-temperature="{{ fish.temperature }}"
                  data-stock="{{ fish.stock }}">
           <div class="fish-visual fish-visual--{% if fish.water_type == 'salada' %}coral{% elif fish.temperature == 'fria' %}mint{% else %}aqua{% endif %}">
-            <span aria-hidden="true">{% if fish.water_type == 'salada' %}🐠{% else %}🐟{% endif %}</span>
-            <span class="water-chip">{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Agua salada{% endif %}</span>
+            {% if fish.image_mime_type %}<img class="fish-image" src="/fish/{{ fish.id }}/image" alt="{{ fish.name }}" loading="lazy">{% else %}<span class="fish-image-placeholder" aria-hidden="true">{% if fish.water_type == 'salada' %}🐠{% else %}🐟{% endif %}</span>{% endif %}
+            {% if not offline_mode %}<span class="water-chip">{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Agua salada{% endif %}</span>{% endif %}
           </div>
           <div class="fish-card-content">
             <div class="fish-title-row">
               <h3>{{ fish.name }}</h3>
               <span class="stock-dot {% if fish.stock > 0 %}stock-dot--available{% else %}stock-dot--empty{% endif %}" title="{% if fish.stock > 0 %}Disponible{% else %}Agotado{% endif %}"></span>
             </div>
-            <p class="scientific-name">{{ fish.species }}</p>
+            {% if not offline_mode %}<p class="scientific-name">{{ fish.species }}</p>
             <div class="fish-tags">
               <span>{% if fish.temperature == 'fria' %}Agua fría{% else %}Agua cálida{% endif %}</span>
               <span>{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Marino{% endif %}</span>
-            </div>
+            </div>{% endif %}
             <div class="fish-card-footer">
-              <div>
+              {% if not offline_mode %}<div>
                 <span class="price">{{ ('%.2f'|format(fish.price))|replace('.', ',') }} €</span>
                 <span class="price-caption">por unidad</span>
-              </div>
+              </div>{% else %}<div class="offline-basic-label">Disponible en caché</div>{% endif %}
               <div class="stock-count {% if fish.stock == 0 %}stock-count--empty{% endif %}">
                 <strong>{{ fish.stock }}</strong>
                 <span>{% if fish.stock > 0 %}en stock{% else %}agotado{% endif %}</span>
@@ -200,6 +200,10 @@
           <label class="form-field">
             <span>Unidades en stock <span class="required-mark">*</span></span>
             <input name="stock" type="number" min="0" step="1" placeholder="0" required>
+          </label>
+          <label class="form-field form-field--full">
+            <span>Imagen del pez <span class="optional-label">Opcional · JPG, PNG o WebP · máx. 5 MB</span></span>
+            <input name="image" type="file" accept="image/jpeg,image/png,image/webp">
           </label>
           <label class="form-field form-field--full">
             <span>Descripción <span class="optional-label">Opcional</span></span>

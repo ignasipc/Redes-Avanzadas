@@ -333,12 +333,39 @@ h1 { margin-bottom: 7px; font-size: clamp(27px, 3.3vw, 35px); letter-spacing: -.
   .stock-action, .delete-action { min-height: 32px; padding-inline: 6px; font-size: 9px; }
 }
 
-/* Mensaje cuando el catálogo no puede obtener datos desde MySQL. */
-.catalog-error {
-  margin: 18px 0;
-  padding: 14px 16px;
-  border: 1px solid #efc4bc;
-  border-radius: 8px;
-  background: #fff3f0;
-  color: #8f3024;
+/* Imágenes de peces almacenadas en MySQL y servidas desde Redis cuando ya se consultaron. */
+.fish-image,
+.fish-image-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  object-fit: cover;
+}
+.fish-image-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: clamp(3rem, 8vw, 5rem);
+}
+.fish-visual:has(.fish-image),
+.fish-visual:has(.fish-image-placeholder) {
+  overflow: hidden;
+}
+.fish-visual .water-chip {
+  position: absolute;
+  z-index: 1;
+}
+.offline-basic-label {
+  color: #9caeb8;
+  font-size: .82rem;
+}
+.offline-warning {
+  border: 1px solid #d99a32;
+  background: #fff4db;
+  color: #68430b;
+}
+button:disabled {
+  cursor: not-allowed !important;
+  opacity: .48;
+  filter: grayscale(.25);
 }

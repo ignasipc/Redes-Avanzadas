@@ -31,6 +31,8 @@
   const toast = document.getElementById('toast');
   let lastFocus = null;
   let toastTimer = null;
+  let readOnlyMode = root.dataset.offlineMode === 'true';
+  let hadOfflineDatabase = readOnlyMode;
 
   if (environmentTag) environmentTag.textContent = cacheEnabled ? 'PRODUCCIÓN' : 'DESARROLLO';
 
@@ -53,7 +55,7 @@
       ...options,
       headers: {
         Accept: 'application/json',
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
         ...(options.headers || {})
       },
       cache: 'no-store'
@@ -100,10 +102,60 @@
       const data = await response.json();
       setServiceIndicator(mysqlStatus, mysqlDot, data.database);
       if (cacheEnabled) setServiceIndicator(redisStatus, redisDot, data.cache);
+      if (data.database !== 'connected') {
+        hadOfflineDatabase = true;
+        setReadOnlyMode(true, data.offline_cache_available
+          ? 'MySQL está caído. Se muestran los últimos datos guardados en Redis: nombre, stock e imágenes. Solo lectura; cualquier cambio está deshabilitado y no se guardaría.'
+          : 'MySQL está caído y no hay un catálogo disponible en caché. No se pueden guardar cambios.');
+      } else if (hadOfflineDatabase) {
+        window.location.reload();
+      } else {
+        setReadOnlyMode(false);
+      }
     } catch (_error) {
       setServiceIndicator(mysqlStatus, mysqlDot, 'unknown');
       if (cacheEnabled) setServiceIndicator(redisStatus, redisDot, 'unknown');
     }
+  }
+
+  function setReadOnlyMode(enabled, message = '') {
+    readOnlyMode = enabled;
+    root.dataset.offlineMode = enabled ? 'true' : 'false';
+    if (openButton) openButton.disabled = enabled;
+    if (enabled && modal && !modal.hidden) closeModal();
+    const waterWrap = waterFilter?.closest('.select-wrap');
+    const temperatureWrap = temperatureFilter?.closest('.select-wrap');
+    if (waterWrap) waterWrap.hidden = enabled;
+    if (temperatureWrap) temperatureWrap.hidden = enabled;
+    if (searchInput && enabled) searchInput.placeholder = 'Buscar por nombre común…';
+    if (searchInput && !enabled) searchInput.placeholder = 'Buscar pez o especie…';
+    const bannerId = 'offline-warning';
+    let banner = document.getElementById(bannerId);
+    if (enabled) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = bannerId;
+        banner.className = 'catalog-error offline-warning';
+        banner.setAttribute('role', 'alert');
+        const panel = document.querySelector('.catalog-panel');
+        panel?.prepend(banner);
+      }
+      if (banner && message) banner.textContent = message;
+      if (catalogError) catalogError.hidden = true;
+      getCards().forEach(card => card.querySelectorAll('[data-action]').forEach(button => { button.disabled = true; }));
+    } else {
+      banner?.remove();
+      if (catalogError) catalogError.hidden = false;
+      getCards().forEach(card => {
+        if (!card.querySelector('.fish-card-actions')) ensureCardActions(card);
+        card.querySelectorAll('[data-action]').forEach(button => {
+          button.disabled = button.dataset.action === 'decrement-stock' && Number(card.dataset.stock || 0) <= 0;
+        });
+      });
+    }
+    if (form) form.querySelectorAll('input, select, textarea, button').forEach(control => {
+      if (control.type !== 'button' || ['close-modal', 'cancel-modal'].includes(control.id)) control.disabled = enabled;
+    });
   }
 
   refreshServiceStatus();
@@ -138,7 +190,7 @@
 
   function ensureCardActions(card) {
     const content = card.querySelector('.fish-card-content');
-    if (!content || content.querySelector('.fish-card-actions')) return;
+    if (!content || content.querySelector('.fish-card-actions') || readOnlyMode) return;
     const name = cardName(card);
     const currentStock = Number(card.dataset.stock || 0);
     const actions = document.createElement('div');
@@ -247,6 +299,10 @@
   async function handleCardAction(event) {
     const button = event.target.closest('button[data-action]');
     if (!button || !grid?.contains(button)) return;
+    if (readOnlyMode) {
+      showToast('MySQL está desconectado. El inventario está en modo de solo lectura; no se ha guardado ningún cambio.');
+      return;
+    }
     const card = button.closest('.fish-card');
     if (!card) return;
     const id = Number(card.dataset.id);
@@ -289,6 +345,7 @@
   function cardMarkup(fish) {
     const accent = fish.water_type === 'salada' ? 'coral' : (fish.temperature === 'fria' ? 'mint' : 'aqua');
     const emoji = fish.water_type === 'salada' ? '🐠' : '🐟';
+    const image = fish.image_mime_type ? `<img class="fish-image" src="/fish/${Number(fish.id)}/image" alt="${escapeHtml(fish.name)}" loading="lazy">` : `<span class="fish-image-placeholder" aria-hidden="true">${emoji}</span>`;
     const stock = Number(fish.stock);
     const available = stock > 0;
     const name = escapeHtml(fish.name);
@@ -298,7 +355,7 @@
     const id = Number(fish.id);
     return `
       <article class="fish-card" data-id="${id}" data-name="${escapeHtml(fish.name.toLocaleLowerCase())}" data-species="${escapeHtml(fish.species.toLocaleLowerCase())}" data-water="${water}" data-temperature="${temperature}" data-stock="${stock}">
-        <div class="fish-visual fish-visual--${accent}"><span aria-hidden="true">${emoji}</span><span class="water-chip">${waterLabel(water)}</span></div>
+        <div class="fish-visual fish-visual--${accent}">${image}<span class="water-chip">${waterLabel(water)}</span></div>
         <div class="fish-card-content">
           <div class="fish-title-row"><h3>${name}</h3><span class="stock-dot ${available ? 'stock-dot--available' : 'stock-dot--empty'}" title="${available ? 'Disponible' : 'Agotado'}"></span></div>
           <p class="scientific-name">${species}</p>
@@ -313,18 +370,13 @@
     if (!form.reportValidity()) return;
     const submitButton = form.querySelector('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
+    if (readOnlyMode) {
+      showToast('MySQL está desconectado. No se puede guardar el pez.');
+      return;
+    }
     const data = new FormData(form);
-    const fish = {
-      name: String(data.get('name') || '').trim(),
-      species: String(data.get('species') || '').trim(),
-      water_type: String(data.get('water_type') || ''),
-      temperature: String(data.get('temperature') || ''),
-      price: Number(data.get('price')),
-      stock: Number(data.get('stock')),
-      description: String(data.get('description') || '').trim()
-    };
     try {
-      const result = await requestJson('/api/fish', { method: 'POST', body: JSON.stringify(fish) });
+      const result = await requestJson('/api/fish', { method: 'POST', body: data });
       grid?.insertAdjacentHTML('beforeend', cardMarkup(result.fish));
       const newCard = grid?.lastElementChild;
       if (newCard) ensureCardActions(newCard);
@@ -339,6 +391,7 @@
   });
 
   getCards().forEach(ensureCardActions);
+  if (readOnlyMode) setReadOnlyMode(true, catalogError?.textContent || 'MySQL está caído. Modo de solo lectura.');
   if (!cacheEnabled) {
     if (redisStatus) redisStatus.textContent = 'No habilitado';
     if (redisDot) redisDot.className = 'status-dot status-dot--off';
