@@ -54,7 +54,7 @@ al final del comando anterior, veremos el historial completo de contenedores (in
 Comprobado que el contenedor se encuentra correctamente en ejecución, podemos abrir nuestro navegador de confianza y acceder a http://localhost:8080. Si todo ha funcionado correctamente, se mostrará la página web de bienvenida de **Nginx**. ¡Ya tenemos nuestro servidor web funcionando! 🤩
 
 <p align="center">
-  <img src="PrePractice1/imagesPreP1/bienvenidaNginx.png" 
+  <img src="Redes-Avanzadas/PrePractice1/imagesPreP1/bienvenidaNginx.png" 
        alt="Página web de bienvenida de Nginx">
 </p>
 
