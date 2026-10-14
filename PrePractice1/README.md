@@ -54,7 +54,7 @@ al final del comando anterior, veremos el historial completo de contenedores (in
 Comprobado que el contenedor se encuentra correctamente en ejecución, podemos abrir nuestro navegador de confianza y acceder a http://localhost:8080. Si todo ha funcionado correctamente, se mostrará la página web de bienvenida de **Nginx**. ¡Ya tenemos nuestro servidor web funcionando! 🤩
 
 <p align="center">
-  <img src="Redes-Avanzadas/PrePractice1/imagesPreP1/bienvenidaNginx.png" 
+  <img src="imagesPreP1/bienvenidaNginx.png" 
        alt="Página web de bienvenida de Nginx">
 </p>
 
@@ -119,7 +119,7 @@ docker run --name mynginximage -d -p 8080:80 mynginximage
 Finalmente, ahora que el contenedor está ejecutandose, si vamos a http://localhost:8080 en nuestro navegador de confianza veremos nuestra página web personalizada funciona correctamente! 🤩
 
 <p align="center">
-  <img src="PrePractice1/imagesPreP1/hiDockerWeb.png" 
+  <img src="imagesPreP1/hiDockerWeb.png" 
        alt="Página web personalizada">
 </p>
 
