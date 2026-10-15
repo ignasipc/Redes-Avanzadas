@@ -375,6 +375,14 @@
       return;
     }
     const data = new FormData(form);
+    console.log(
+        [...data.entries()].map(([key, value]) => [
+            key,
+            value instanceof File
+                ? `${value.name} (${value.size} bytes, ${value.type})`
+                : value
+        ])
+    );
     try {
       const result = await requestJson('/api/fish', { method: 'POST', body: data });
       grid?.insertAdjacentHTML('beforeend', cardMarkup(result.fish));

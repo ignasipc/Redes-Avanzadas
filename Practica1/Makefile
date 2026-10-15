@@ -42,3 +42,6 @@ ps-prod: setup
 clean: setup
 	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) down -v
 	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) down -v
+
+purge-all:
+	#hacer todos los comandos de borrar ejecuciones, imagenes y volumenes

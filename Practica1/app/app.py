@@ -41,7 +41,6 @@ def get_cache():
         decode_responses=False,
     )
 
-
 def cache_set(key, value, ex=None):
     if not CACHE_ENABLED:
         return False
@@ -53,6 +52,9 @@ def cache_set(key, value, ex=None):
     except RedisError:
         app.logger.warning('No se ha podido actualizar la caché Redis', exc_info=True)
         return False
+    finally:
+        if client:
+            client.close()
 
 
 def cache_get(key):
@@ -65,6 +67,9 @@ def cache_get(key):
     except RedisError:
         app.logger.warning('No se ha podido leer la caché Redis', exc_info=True)
         return None
+    finally:
+        if client:
+            client.close()
 
 
 def invalidate_image_cache(fish_id):
@@ -76,6 +81,9 @@ def invalidate_image_cache(fish_id):
         client.delete(f'aquarium:fish:{fish_id}:image', f'aquarium:fish:{fish_id}:mime')
     except RedisError:
         app.logger.warning('No se ha podido invalidar la imagen en caché', exc_info=True)
+    finally:
+        if client:
+            client.close()
 
 
 def ensure_image_columns(connection):
