@@ -8,7 +8,7 @@ La arquitectura estará compuesta por una aplicación web, una base de datos y u
 
 A lo largo de la práctica se trabajarán conceptos fundamentales del ecosistema Docker, como la orquestación de contenedores, la gestión de variables de entorno, la persistencia de datos mediante volúmenes, la comunicación entre servicios a través de redes internas, las comprobaciones de estado (*healthchecks*) y la automatización de tareas mediante un *Makefile*.
 
-El propósito final es obtener una infraestructura organizada, reproducible y fácil de gestionar, aplicando buenas prácticas de configuración y seguridad en el despliegue de aplicaciones con Docker Compose.
+El propósito final es obtener una infraestructura organizada, reproducible y fácil de gestionar, mediante el despliegue de aplicaciones con Docker Compose.
 
 ## Preparación para el proyecto
 
@@ -30,14 +30,22 @@ La organización de las carpetas quedará tal que así:
 ```
 Practica1/
 ├── app/
-│   ├── app.py
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   ├── templates/
+│   ├── static/
+|   |   ├── app.js
+|   |   └── style.css
+|   ├── templates/
 │   |   └── index.html
-|   └── static/
-|       ├── app.js
-|       └── style.css
+│   ├── Dockerfile
+│   ├── app.py
+│   └── requirements.txt
+├── db/
+│   ├── images/
+|   |   └── *.jpg   ;All .jpg images to have some fish data in sql database
+│   └── init.sql
+├── exampleImages/
+|   └── *.jpg       ;All fish images to insert into the db through website to prove it's functioning
+├── imagesP1/
+|   └── *.jpg       ;All screenshots for the README.md
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
 ├── .env.dev
