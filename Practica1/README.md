@@ -55,11 +55,32 @@ Practica1/
 └── README.md
 ```
 
+Para el diseño de los entornos quedaría de la siguiente manera, siendo el esquema de la izquierda el entorno `dev` y el de la derecha el entorno `prod`:
+
+```mermaid
+flowchart TD
+    A(USUARIO) <-->|localhost:8081| B[WEB
+    Flask
+    Puerto: 5000]
+    B <-->|internal_net| C[Base de datos
+    MySQL
+    Puerto: 3306]
+    C <--> D[Volumen]
+
+    E(USUARIO) <-->|localhost:8080| F[WEB
+    Flask
+    Puerto: 5000] <-->|internal_net| I[Redis]
+    F <-->|internal_net| G[Base de datos
+    MySQL
+    Puerto: 3306]
+    G <--> H[Volumen]
+```
+
 ## Diseño de la página web
 
 Para esta práctica se ha decidido desarrollar **Aquarium**, una aplicación web para gestionar el inventario de peces de una tienda de animales especializada en acuariofilia.
 
-La aplicación contará con una interfaz sencilla e intuitiva que permitirá consultar el catálogo, filtrar los peces disponibles y registrar nuevos ejemplares en el inventario. No se implementará un sistema de compras, ya que el objetivo principal es gestionar el stock y trabajar con la arquitectura de servicios propuesta en la práctica.
+La aplicación contará con una interfaz sencilla e intuitiva que permitirá consultar el catálogo, filtrar los peces disponibles y registrar nuevos ejemplares en el inventario. No se implementará un sistema de compras, ya que el objetivo principal es gestionar el *stock* y trabajar con la arquitectura de servicios propuesta en la práctica.
 
 ### Funcionalidades principales
 
@@ -67,10 +88,13 @@ La aplicación contará con una interfaz sencilla e intuitiva que permitirá con
 
 La página principal mostrará los peces registrados mediante tarjetas informativas, incluyendo los siguientes datos:
 
-- Nombre común y especie.
-- Tipo de agua y temperatura.
-- Precio.
-- Unidades disponibles en stock.
+- Nombre común y especie
+- Tipo de agua y temperatura
+- Precio
+- Unidades disponibles en *stock*
+- Una imagen
+
+Aparte, se mostrará el número de especies en el catálogo, el número total de unidades en *stock* y el número de especies agotadas.
 
 #### 2 - Filtrado de peces
 
@@ -78,46 +102,49 @@ Se podrán combinar diferentes filtros para localizar fácilmente los peces que 
 
 | Filtro | Opciones |
 |---|---|
+| Búsqueda | Escritura manual del nombre común o especie |
 | Tipo de agua | Dulce o salada |
 | Temperatura | Fría o cálida |
-| Especie | Guppy, betta, pez payaso, entre otras |
-| Disponibilidad | En stock o agotado |
+| Disponibilidad | En *stock* o agotado |
 
-Por ejemplo, se podrán consultar únicamente los peces de agua dulce que vivan en aguas cálidas y que estén disponibles en stock.
+Por ejemplo, se podrán consultar únicamente los peces de agua dulce que vivan en aguas cálidas, que estén disponibles en *stock* y contengan en el nombre común o de la especie los caracteres 'an' en ese orden y en cualquier parte del nombre.
 
 #### 3 - Registro de nuevos peces
 
-La aplicación dispondrá de un formulario emergente (*popup*) para añadir nuevos ejemplares al inventario.
+La aplicación dispondrá de un formulario emergente (*pop-up*) para añadir nuevos ejemplares al inventario.
 
 El formulario permitirá introducir la siguiente información:
 
-- Nombre común.
-- Especie.
-- Tipo de agua.
-- Temperatura.
-- Precio.
-- Cantidad disponible.
-- Descripción opcional.
+- Nombre común
+- Especie
+- Tipo de agua
+- Temperatura
+- Precio
+- Unidades en *stock*
+- Descripción (opcional)
+- Imagen (opcional)
 
 Los campos correspondientes a categorías predefinidas se seleccionarán mediante desplegables, mientras que la especie se introducirá como texto libre.
 
-#### 4 - Gestionar bajas y eliminar fichas
+#### 4 - Gestionar el incremento y decremento del stock y eliminación de fichas
 
 Cada tarjeta incluye dos acciones diferenciadas:
 
-- **Registrar baja (− 1 unidad):** reduce el stock en una unidad cuando un pez se vende o se pierde. La ficha permanece en el catálogo y se marca como agotada cuando llega a cero.
+- **Incrementar *stock* (+ 1 unidad):** aumenta el stock en una unidad cuando llega nuevo *stock*.
 
-- **Eliminar ficha:** elimina del catálogo el registro completo de esa especie, previa confirmación. Esta acción se reserva para cuando se quiera retirar todo el producto del inventario, no para registrar la salida de una sola unidad.
+- **Incrementar *stock* (− 1 unidad):** reduce el stock en una unidad cuando un pez se vende, se pierde o muere. La ficha permanece en el catálogo y se marca como agotada cuando llega a cero.
+
+- **Eliminar ficha:** elimina del catálogo el registro completo de esa especie. Esta acción se reserva para cuando se quiera retirar todo el producto del inventario, no para registrar la salida de una sola unidad.
 
 #### 5 - Estado de los servicios
 
-La cabecera está preparada para mostrar el estado real de MySQL y Redis mediante el endpoint `/status`. Redis solo estará habilitado en producción; en desarrollo se indicará como no habilitado.
+La cabecera está preparada para mostrar el estado real y actual de MySQL y Redis mediante el *endpoint* `/status`. Redis solo estará habilitado en producción; en desarrollo se indicará como no habilitado.
 
 ### Diseño de la interfaz
 
 La interfaz se desarrollará utilizando **HTML, CSS y JavaScript**, con una distribución visual basada en tarjetas y filtros para facilitar la navegación y la gestión del inventario.
 
-La siguiente imagen muestra el diseño propuesto para la aplicación:
+La siguiente imagen muestra el diseño final de la aplicación:
 
 <p align="center">
   <img src="imagesP1/AquariumInventarioWeb.png" 
@@ -129,10 +156,7 @@ La siguiente imagen muestra el diseño propuesto para la aplicación:
 La aplicación web se implementará utilizando **Python y Flask** para gestionar la lógica del servidor y las comunicaciones con los servicios externos.
 
 - **MySQL:** almacenará de forma persistente la información de los peces y su stock.
-- **Redis:** se utilizará como caché únicamente en el entorno de producción, con el objetivo de reducir consultas repetidas a la base de datos.
-- **Docker Compose:** permitirá desplegar los servicios en dos entornos diferenciados, desarrollo (`dev`) y producción (`prod`).
-
-La interfaz también mostrará el estado de conexión de los servicios dependientes, permitiendo comprobar su disponibilidad mediante el endpoint `/status`.
+- **Redis:** se utilizará como caché únicamente en el entorno de producción, con el objetivo de reducir consultas repetidas y pesadas a la base de datos.
 
 De este modo, Aquarium servirá como aplicación de ejemplo para poner en práctica la orquestación de contenedores, la persistencia de datos, la comunicación entre servicios y la gestión de entornos con Docker Compose.
 
@@ -161,7 +185,10 @@ Los datos de ejemplo se almacenan en MySQL: ya no son tarjetas ficticias escrita
 Si hago [localhost/ ](http://localhost:8081/status).
 Hacer un Make setup para que el profe esté contento.
 Debemos saber en todo momento Como? Cuando? Es decir, que saber el pq en todo momento
-Tengo error al introducir un pez nuevo, tanto con imagen como sin imagen
+
+
+
+
 
 
 
