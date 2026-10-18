@@ -354,9 +354,148 @@ Además, se ha incluido el comando `make setup`, cuyo objetivo es facilitar la p
 
 ## Pruebas y verificaciones
 
-El objetivo de estas pruebas es comprobar que la aplicación funciona correctamente en los entornos de desarrollo (`dev`) y producción (`prod`), verificando el funcionamiento de la web, la conexión con MySQL, la persistencia de los datos, el uso de Redis como caché y el comportamiento de la aplicación cuando falla alguno de los servicios.
+El objetivo de estas pruebas es comprobar que la aplicación funciona correctamente en los entornos de desarrollo (`dev`) y producción (`prod`). Para ello, verificaremos el funcionamiento de la web, la conexión con MySQL, la persistencia de los datos, el uso de Redis como sistema de caché y el comportamiento de la aplicación cuando alguno de los servicios deja de estar disponible.
 
+### Inicialización de los entornos
 
+Comprobamos primero que los dos entornos se inician correctamente mediante los comandos `make up-dev` y `make up-prod`. A continuación, consultamos el estado de los contenedores para verificar que todos los servicios se encuentran operativos.
+
+<p align="center">
+  <img src="imagesP1/makeUpDev.png"
+       alt="Inicialización del entorno Dev">
+  <img src="imagesP1/makeUpProd.png"
+       alt="Inicialización del entorno Prod">
+  <img src="imagesP1/status.png"
+       alt="Estado de los servicios Dev y Prod">
+</p>
+
+Como podemos observar, todos los servicios de los entornos `dev` y `prod` se inician correctamente y aparecen en estado `healthy`. En producción, este estado se aplica a los servicios `web`, `db` y `cache`, mientras que en desarrollo se aplica únicamente a `web` y `db`, ya que Redis no forma parte de este entorno.
+
+### Comprobación del funcionamiento de la web
+
+Para comprobar el funcionamiento de la interfaz, accedemos a la aplicación desde el navegador (según el puerto que se haya indicado en los `.env`):
+
+- Desarrollo: `http://localhost:8081`
+- Producción: `http://localhost:8080`
+
+Una vez cargada la página, realizamos distintas operaciones para verificar el comportamiento del catálogo:
+
+- Comprobamos que se muestran correctamente los peces, sus características y sus imágenes.
+- Aplicamos los filtros disponibles para comprobar que permiten localizar los peces según el nombre, la especie, el tipo de agua, la temperatura y la disponibilidad.
+- Modificamos el stock de los peces para comprobar que las operaciones de incremento y decremento funcionan correctamente.
+- Añadimos un nuevo pez mediante el formulario, incluyendo una imagen, para verificar que se pueden introducir nuevos registros.
+
+<p align="center">
+  <img src="imagesP1/Comprobacion1Prod.png"
+       alt="Comprobaciones del funcionamiento de la aplicación en producción">
+</p>
+
+Como podemos observar, la aplicación permite consultar y filtrar el catálogo, modificar el stock y añadir nuevos peces. Las operaciones realizadas se reflejan en la interfaz correctamente.
+
+Además, al recargar la página, los cambios guardados se mantienen, lo que indica que los datos se conservan en la base de datos y no dependen únicamente del estado temporal de la interfaz.
+
+También comprobamos que los entornos de desarrollo y producción mantienen catálogos independientes. Los cambios realizados en uno de ellos no afectan al otro, ya que cada entorno utiliza su propia instancia de MySQL y sus propios volúmenes de datos.
+
+### Comprobación del endpoint `/status`
+
+Para verificar el estado de los servicios desde la propia aplicación, accedemos al endpoint `/status` de cada entorno:
+
+- Desarrollo: `http://localhost:8081/status`
+- Producción: `http://localhost:8080/status`
+
+Este endpoint permite comprobar si las dependencias necesarias para el funcionamiento de la aplicación están disponibles. En desarrollo se comprueba la conexión con MySQL, mientras que en producción se comprueban tanto MySQL como Redis.
+
+<p align="center">
+  <img src="imagesP1/endpointStatus.png"
+       alt="Respuesta del endpoint status">
+</p>
+
+Cuando todos los servicios necesarios están disponibles, el endpoint devuelve una respuesta JSON con información sobre su estado. En producción, un resultado como el siguiente indica que la aplicación se encuentra operativa:
+
+### Comprobación de la conexión con MySQL
+
+Para verificar que la aplicación puede conectarse correctamente con las bases de datos de ambos entornos, ejecutamos los comandos de prueba incluidos en el `Makefile`:
+
+<p align="center">
+  <img src="imagesP1/dbTest.png"
+       alt="Ejecución y respuesta de los comandos make test-db-prod y make test-db-dev">
+</p>
+
+Estas pruebas comprueban la conectividad con MySQL, la autenticación mediante las credenciales configuradas y la ejecución de una consulta SQL.
+
+Si ambos comandos finalizan correctamente, podemos confirmar que las bases de datos de desarrollo y producción responden a las pruebas de conexión realizadas.
+
+### Comprobación de la persistencia de MySQL
+
+Para comprobar que los datos se conservan correctamente, verificamos el comportamiento de la base de datos al detener y volver a iniciar el servicio MySQL.
+
+En primer lugar, añadimos un pez desde la interfaz web y comprobamos que aparece en el catálogo:
+
+<p align="center">
+  <img src="imagesP1/insertFish.png"
+       alt="Ejecución y respuesta de los comandos make test-db-prod y make test-db-dev">
+</p>
+
+A continuación, eliminamos otro registro desde la aplicación y verificamos que desaparece de la interfaz.
+Después, detenemos el servicio MySQL del entorno de desarrollo:
+
+<p align="center">
+  <img src="imagesP1/deleteFish.png"
+       alt="Eliminación de un registro de pez, diferente al de inserción">
+  <img src="imagesP1/stopSQLDev.png"
+       alt="Parada y eliminación de la ejecución de la base de datos de Dev">
+</p>
+
+Mientras MySQL está detenido, intentamos acceder al catálogo y comprobamos cómo responde la aplicación ante la pérdida de conexión con la base de datos.
+
+<p align="center">
+  <img src="imagesP1/devNoSQL.png"
+       alt="Página web sin MySQL disponible">
+</p>
+
+A continuación, volvemos a iniciar el servicio:
+
+<p align="center">
+  <img src="imagesP1/runSQLDev.png"
+       alt="Restauramos el servicio SQL de Dev">
+</p>
+
+Una vez que MySQL vuelve a estar operativo, comprobamos nuevamente el catálogo y verificamos que los cambios realizados antes de detener el servicio se han conservado (Se han aplicado filtros para ver correctamente que se ha mantenido la inserción).
+
+<p align="center">
+  <img src="imagesP1/webSQLRestore.png"
+       alt="Web con el SQL restaurado manteniendo la información gracias al volumen">
+</p>
+
+Este procedimiento permite comprobar que los datos persistentes se almacenan en el volumen de Docker asociado a MySQL. Detener e iniciar el contenedor no elimina dicho volumen, por lo que los datos no se pierden al reiniciar el servicio.
+
+### Comprobación de la caché cuando MySQL deja de estar disponible
+
+Para verificar el comportamiento de la aplicación ante una caída de MySQL, detenemos temporalmente el servicio en producción y a continuación, accedemos de nuevo a la web:
+
+<p align="center">
+  <img src="imagesP1/prodNoSQL.png"
+       alt="Paramos y eliminamos la ejecución de MySQL">
+  <img src="imagesP1/webProdNoSQL.png"
+       alt="Web sin SQL, sólo caché">
+</p>
+
+Comprobamos que la aplicación puede mostrar la información del catálogo que se encuentre almacenada previamente en Redis. Si existe una copia disponible y la implementación permite utilizarla, el catálogo podrá mostrarse en modo de solo lectura mientras MySQL permanezca desconectado.
+
+Durante esta prueba también verificamos que las operaciones que requieren modificar los datos persistentes no se permiten cuando MySQL no está disponible.
+
+Debemos tener en cuenta que la información disponible durante la caída depende de los datos que se hayan almacenado previamente en Redis. Por tanto, no se garantiza que todo el catálogo y todas las imágenes estén disponibles.
+
+Finalmente, volvemos a iniciar MySQL:
+
+<p align="center">
+  <img src="imagesP1/restoreSQLProd.png"
+       alt="Volvemos a inicializar el SQL de Prod">
+  <img src="imagesP1/webProdRestored.png"
+       alt="Web Prod restaurada, ahora con el SQL">
+</p>
+
+Con estas pruebas verificamos el funcionamiento básico de Redis como caché y comprobamos cómo responde la aplicación ante la pérdida temporal de conexión con MySQL.
 
 ## Explicación de los healthchecks
 
