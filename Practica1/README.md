@@ -10,35 +10,36 @@ A lo largo de la práctica se trabajarán conceptos fundamentales del ecosistema
 
 El propósito final es obtener una infraestructura organizada, reproducible y fácil de gestionar, mediante el despliegue de aplicaciones con Docker Compose.
 
-## Guía de instalación y ejecución paso a paso
+## Guía de instalación y ejecución
 
-Requisitos previos antes de ejecutar el proyecto, es necesario disponer de:
+Antes de empezar con el proyecto, es necesario tener ya descargados las siguientes herramientas:
 
-- Git, para descargar el proyecto.
-- Docker, para ejecutar los contenedores.
-- Docker Compose, integrado en las versiones actuales de Docker como docker compose.
-- Make, para utilizar los comandos definidos en el Makefile.
-- Los archivos del proyecto.
+- `Git`, para descargar el proyecto.
+- `Docker Engine` + `Docker Compose`, para ejecutar los diferentes contenedores de la aplicación.
+- `Makefile`, para automatizar tareas mediante comandos definidos en el archivo `Makefile` del proyecto.
+- Los propios archivos del proyecto (que obtendremos mediante `Git`).
 
-Primero de todo comprobamos que tienes descargado git con el comando `git --version`, si no lo tienes deberás descargarlo. Una vez que haya sido comprobado, podemos clonar el repositorio mediante el siguiente comando:
+Primero de todo comprobamos que tengamos descargado `Git` con el comando `git --version`, en el caso de no disponer de él, deberemos descargarlo. Una vez descargado, podremos clonar este repositorio dentro de una carpeta que creamos conveniente para guardar el proyecto. Una vez en la ruta (`path`) deseada, utilizaremos el siguiente comando:
 
 ```
 git clone git@github.com:ignasipc/Redes-Avanzadas.git
 ```
 
-Con el repositorio descargado podemos acceder al trabajo actual cambiándonos al directorio correspondiente. Ejecutamos el siguiente comando:
+Con el repositorio descargado podemos acceder al trabajo actual (Práctica 1) cambiándonos al directorio correspondiente. Ejecutamos el siguiente comando:
 
 ```
 cd Redes-Avanzadas/Practica1/
 ```
 
-Ahora solo nos falta crear los archivos con las variables de entorno, `.env.dev` y `.env.prod`, que deben tener el siguiente formato (hay que cambiar 'XXXX' por valores adecuados, teniendo el puerto web diferente en cada archivo):
+Ahora solo nos falta crear los archivos con las variables de entorno, `.env.dev` y `.env.prod`. Los cuales no están disponibles en este repositorio al contener datos sensibles, como por ejemplo contraseñas y variables de entorno que no deseamos que sean conocidos por los demás.
+
+Deben tener el siguiente formato (hay que cambiar 'XXXX' por valores adecuados, teniendo en cuenta que el puerto web debe ser diferente para `dev` y `prod`):
 
 ```
 ## =========================
 # CONFIGURACIÓN WEB
 # =========================
-WEB_PORT_DEV=XXXX
+WEB_PORT_DEV=XXXX   # En los ejemplos y ejecuciones tenemos 8080 para prod y 8081 para dev
 
 # =========================
 # CONFIGURACIÓN MYSQL
@@ -61,9 +62,9 @@ MYSQL_PASSWORD=XXXX
 REDIS_PORT_PROD=6379
 ```
 
-Una vez creados y configurados los archivos `.env.dev` y `.env.prod`, ejecutaremos `make setup`. Este objetivo comprueba los requisitos necesarios para trabajar con Docker, verifica la existencia de los archivos de configuración y valida que Docker Compose pueda interpretar ambos entornos. Si también incluye la construcción de las imágenes, esta operación se realizará durante la preparación del proyecto. El comando no instala automáticamente las herramientas que falten.
+Una vez creados y configurados los archivos `.env.dev` y `.env.prod`, ejecutaremos `make setup`. Este comando comprueba los requisitos necesarios para trabajar con Docker, verificando la existencia de los archivos de configuración y valida que Docker Compose pueda interpretar ambos entornos. El comando no instala automáticamente las herramientas que falten.
 
-Puedes ejecutar el siguiente comando para saber si cumples con los cuatro primeros puntos anteriores:
+Puedes ejecutar el siguiente comando para saber si cumples con los tres primeros puntos mencionados al principio de la [guía de instalación](#guia-de-instalacion-y-ejecucion):
 
 ``` 
 git --version
@@ -74,15 +75,15 @@ make --version
 
 Una vez completadas estas comprobaciones, el proyecto estará preparado para iniciar los servicios. Si alguno de los requisitos no está instalado o la configuración contiene errores, será necesario corregirlos antes de continuar.
 
-Para ejecutar, parar, eliminar, etc. puedes ejecutar los comandos make ya preparados. Consulta la [lista de comandos make](#lista-de-comandos-make) para conocer todas las operaciones disponibles.
+Para ejecutar, parar, eliminar, etc. puedes ejecutar los comandos `make` ya preparados. Consulta la [lista de comandos make](#lista-de-comandos-make) para conocer todas las operaciones disponibles.
 
-Si simplemente quieres ejecutar el entorno `dev` o `prod` escribe simplemente en la terminal `make up-dev` o bien `make up-prod` y ejecuta el comando.
+Para comenzar puedes simplemente escribir en la terminal `make up-dev` o bien `make up-prod` si quieres ejecutar el entorno `dev` o `prod` los cuales ejecutarán lo necesario para tener lista la página web junto con su base de datos o caché (en el caso de `prod`), donde podrás acceder mediante [http://localhost:8080](http://localhost:8080) para el entorno `prod` o [http://localhost:8081](http://localhost:8081) para `dev`.
 
 ## Preparación del proyecto
 
-Antes de adentrarnos a generar archivos y documentos para la práctica, vamos a organizar qué utilizaremos. 
+Antes de adentrarnos a generar archivos y documentos para la práctica, vamos a mostrar qué se ha utilizado para desarrollar el proyecto. 
 
-Seguiremos la siguiente estructura:
+### Las tecnologías utilizadas
 
 | Tecnología | Función |
 | :--- | ---: |
@@ -93,9 +94,9 @@ Seguiremos la siguiente estructura:
 | Docker Compose | Orquestación de contenedores y servicios |
 | Makefile | Automatizar las operaciones habituales |
 
-Crearemos una carpeta app donde tendremos todos los archivos acerca del HTML, CSS y JavaScript de la página Web, una carpeta db con todo lo necesario para la inicialización de nuestra Base de Datos, carpetas con imágenes para añadir ejemplos para hacer testeos y los archivos Docker Compose, los `.env.*` y el Makefile para las automatizaciones.
+Crearemos una carpeta app donde tendremos todos los archivos acerca del HTML, CSS y JavaScript de la página Web, una carpeta db con todo lo necesario para la inicialización de nuestra Base de Datos, carpetas con imágenes para añadir ejemplos para hacer testeos y los archivos Docker Compose (`.yml`), los `.env.*` y el Makefile para las automatizaciones.
 
-La organización de las carpetas quedará tal que así:
+### Organización de carpetas
 
 ```
 Practica1/
@@ -125,7 +126,11 @@ Practica1/
 └── README.md
 ```
 
-Para el diseño de los entornos quedaría de la siguiente manera, siendo el esquema de la izquierda el entorno `dev` y el de la derecha el entorno `prod`:
+Los archivos `.env.dev` y `.env.prod` se crean localmente dentro de `Practica1/` pero no aparecen en el árbol del repositorio porque .gitignore excluye los archivos .env.*.
+
+### Arquitectura de los entornos
+
+El esquema siguiente representa los dos entornos: desarrollo (`dev`) a la izquierda y producción (`prod) a la derecha.
 
 ```mermaid
 flowchart TD
@@ -148,9 +153,9 @@ flowchart TD
     G <--> H[Volumen]
 ```
 
-Una observación importante es que los servicios MySQL y Flask utilizan los mismos puertos internos en ambos entornos. Esto no genera conflictos porque cada entorno dispone de sus propios contenedores y de su propia red de Docker Compose. Además, los puertos publicados en el host pueden configurarse de forma independiente: por ejemplo, desarrollo puede utilizar el puerto 8081 y producción el 8080 para acceder a la aplicación web.
+Los servicios de ambos entornos utilizan sus propios contenedores y redes, por lo que pueden usar los mismos puertos internos sin entrar en conflicto. Los puertos web publicados en el host son configurables y, si se ejecutan los dos entornos simultáneamente, deben ser distintos.
 
-Los servicios MySQL y Redis no publican puertos en el host, por lo que se accede a ellos a través de la red interna de Docker. De este modo, los dos entornos mantienen sus servicios y sus volúmenes separados.
+MySQL y Redis no publican puertos en el host. La aplicación Flask se comunica con ellos a través de la red interna de Docker en su propio entorno. Cada entorno mantiene su propia base de datos y su propio volumen de MySQL; Redis y su volumen de caché solo se utilizan en producción.
 
 ## Diseño de la página web
 
@@ -218,7 +223,7 @@ Todos estos botones presentes en cada ficha de los peces, <u>al ser pulsados se 
 
 La cabecera está preparada para mostrar el estado real y actual de MySQL y Redis mediante el *endpoint* `/status`. Redis solo estará habilitado en producción; en desarrollo se indicará como no habilitado. El estado de los servicios se comprueban automáticamente en un intervalo de 10s gracias a una función dentro del `.js`.
 
-La siguiente imagen muestra el diseño final de la aplicación:
+La siguiente imagen muestra el diseño de la aplicación:
 
 <p align="center">
   <img src="imagesP1/AquariumInventarioWeb.png" 
@@ -251,8 +256,8 @@ Flask recibe las peticiones del navegador, valida los datos enviados, consulta o
 
 El endpoint `/status` permite consultar el estado de los servicios desde el navegador:
 
-- `http://localhost:8081/status` para **DEV**.
-- `http://localhost:8080/status` para **PROD**.
+- [`http://localhost:8081/status`](http://localhost:8081/status) para **DEV**.
+- [`http://localhost:8080/status`](http://localhost:8080/status) para **PROD**.
 
 <p align="center">
   <img src="imagesP1/endpointStatus.png" 
@@ -263,9 +268,21 @@ Los puertos corresponden a la configuración definida en Docker Compose.
 
 El endpoint ejecuta una consulta sencilla a MySQL (hace un `SELECT 1;`) y, cuando Redis está habilitado, realiza una comprobación mediante `ping`. La respuesta contiene información sobre el estado de los servicios, si la aplicación está en modo de solo lectura y si existe un catálogo disponible en caché para utilizar cuando MySQL no responde.
 
+Con las dos dependencias conectadas, una respuesta de ejemplo en producción puede ser:
+
+``` JSON
+{
+  "cache": "connected",
+  "database": "connected",
+  "offline_cache_available": false,
+  "read_only": false,
+  "status": "healthy"
+}
+```
+
 ## Base de Datos - MySQL
 
-MySQL es el sistema de gestión de bases de datos relacional utilizado para almacenar de forma persistente la información del inventario de Aquarium.
+MySQL es el sistema de gestión de bases de datos relacional utilizado para almacenar de forma persistente la información del inventario.
 
 A diferencia de Redis, MySQL conserva los datos como fuente principal de información de la aplicación. Por tanto, las operaciones de creación, modificación y eliminación se realizan sobre esta base de datos.
 
@@ -287,6 +304,8 @@ Cada registro incluye los siguientes campos:
 | `image_data` | Contenido binario de la imagen, si existe |
 | `image_mime_type` | Tipo MIME de la imagen |
 
+El script de inicialización de MySQL suele ejecutarse al inicializar un directorio de datos vacío. Si ya existe un volumen de MySQL con una base de datos inicializada, modificar `init.sql no implica que ese script se vuelva a ejecutar automáticamente.
+
 ### Persistencia mediante volúmenes Docker
 
 Para evitar que los datos se pierdan al eliminar o recrear el contenedor de MySQL, se utiliza un volumen Docker. El volumen almacena los archivos de la base de datos fuera del ciclo de vida del contenedor. Mientras no se elimine el volumen, los datos pueden conservarse aunque se sustituya el contenedor que ejecuta MySQL.
@@ -295,7 +314,7 @@ Para evitar que los datos se pierdan al eliminar o recrear el contenedor de MySQ
 
 Redis se utiliza como sistema de caché únicamente en el entorno de producción (`prod`). En desarrollo (`dev`) no se despliega este servicio.
 
-Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
+La caché permite reutilizar información almacenada temporalmente y reducir algunos accesos a MySQL. También puede permitir que parte del catálogo permanezca disponible cuando MySQL deja de responder, siempre que esos datos se hayan guardado previamente en Redis y la lógica de la aplicación contemple ese caso.
 
 ### Funcionamiento de la caché
 
