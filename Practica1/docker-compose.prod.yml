@@ -13,7 +13,7 @@ services:
       REDIS_HOST: cache
       REDIS_PORT: "6379"
     ports:
-      - "${WEB_PORT:-8082}:5000"
+      - "${WEB_PORT_PROD}:5000"
     depends_on:
       db:
         condition: service_healthy

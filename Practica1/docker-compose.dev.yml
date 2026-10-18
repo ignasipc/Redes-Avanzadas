@@ -11,7 +11,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:?Define MYSQL_USER en .env.dev}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env.dev}
     ports:
-      - "${WEB_PORT:-8081}:5000"
+      - "${WEB_PORT_DEV}:5000"
     depends_on:
       db:
         condition: service_healthy

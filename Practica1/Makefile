@@ -43,5 +43,21 @@ clean: setup
 	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) down -v
 	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) down -v
 
+# ATENCIÓN: elimina también los volúmenes y, por tanto, los datos de MySQL.
 purge-all:
-	#hacer todos los comandos de borrar ejecuciones, imagenes y volumenes
+	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) stop
+	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) stop
+	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) down
+	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) down
+	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) down --rmi all -v
+	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) down --rmi all -v
+
+show-docker-status:
+	@echo "===== CONTENEDORES ====="
+	docker ps -a
+	@echo ""
+	@echo "===== IMÁGENES ====="
+	docker images
+	@echo ""
+	@echo "===== VOLÚMENES ====="
+	docker volume ls
