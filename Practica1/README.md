@@ -265,3 +265,12 @@ Lista de los diferentes comandos creados:
 | `ps-dev` | Muestra el estado de los servicios de desarrollo |
 | `ps-prod` | Muestra el estado de los servicios de producción |
 | `purge-all` | Detiene ambos entornos y elimina contenedores, redes, volúmenes e imágenes asociadas |
+
+## Declaración de uso de inteligencia artificial
+- **Herramienta**: ChatGPT (OpenAI), modelo GPT-6.
+
+- **Finalidad del uso**: Consulta de dudas técnicas, aclaración de conceptos relacionados con Docker, Docker Compose, Flask, MySQL y Redis, así como asistencia en la redacción y revisión de la documentación técnica además del código de los diferentes lenguajes utilizados.
+
+- **Partes del trabajo en las que se ha aplicado**: Documentación del proyecto en el archivo README.md, explicación de la arquitectura de la aplicación y de los entornos de desarrollo y producción, configuración del Makefile y resolución de dudas sobre la conexión entre servicio, la persistencia de datos y en la creación de los archivos con los códigos de Docker Compose, Flask, MySQL y Redis.
+
+La herramienta se ha utilizado como apoyo durante el desarrollo del proyecto. Las decisiones finales sobre la implementación y la integración de las soluciones propuestas corresponden al autor del trabajo.
