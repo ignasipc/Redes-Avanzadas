@@ -14,11 +14,6 @@ setup:
 	@echo "========== Validando configuración =========="
 	docker compose -p aquarium-dev --env-file .env.dev -f $(COMPOSE_DEV) config -q
 	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) config -q
-	@echo "========== Construyendo imágenes =========="
-	$(MAKE) build
-	@echo "========== Preparación completada =========="
-	@echo "Para iniciar desarrollo: make up-dev"
-	@echo "Para iniciar producción: make up-prod"
 
 # Muestra el estado general de los recursos de Docker.
 show-docker-status:
