@@ -6,7 +6,7 @@ services:
       APP_ENV: dev
       CACHE_ENABLED: "false"
       MYSQL_HOST: db
-      MYSQL_PORT: "3306"
+      MYSQL_PORT: ${MYSQL_PORT_DEV}
       MYSQL_DATABASE: ${MYSQL_DATABASE:?Define MYSQL_DATABASE en .env.dev}
       MYSQL_USER: ${MYSQL_USER:?Define MYSQL_USER en .env.dev}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env.dev}

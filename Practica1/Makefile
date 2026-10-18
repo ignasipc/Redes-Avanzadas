@@ -53,11 +53,11 @@ purge-all:
 	docker compose -p aquarium-prod --env-file .env.prod -f $(COMPOSE_PROD) down --rmi all -v
 
 show-docker-status:
-	@echo "===== CONTENEDORES ====="
+	@echo "========== CONTENEDORES =========="
 	docker ps -a
 	@echo ""
-	@echo "===== IMÁGENES ====="
+	@echo "========== IMÁGENES =========="
 	docker images
 	@echo ""
-	@echo "===== VOLÚMENES ====="
+	@echo "========== VOLÚMENES =========="
 	docker volume ls

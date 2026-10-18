@@ -6,12 +6,12 @@ services:
       APP_ENV: prod
       CACHE_ENABLED: "true"
       MYSQL_HOST: db
-      MYSQL_PORT: "3306"
+      MYSQL_PORT: ${MYSQL_PORT_PROD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:?Define MYSQL_DATABASE en .env.prod}
       MYSQL_USER: ${MYSQL_USER:?Define MYSQL_USER en .env.prod}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Define MYSQL_PASSWORD en .env.prod}
       REDIS_HOST: cache
-      REDIS_PORT: "6379"
+      REDIS_PORT: "${REDIS_PORT_PROD}"
     ports:
       - "${WEB_PORT_PROD}:5000"
     depends_on:
@@ -53,6 +53,8 @@ services:
   cache:
     image: redis:7-alpine
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
     networks:
       - internal_net
     restart: unless-stopped
@@ -68,3 +70,4 @@ networks:
 
 volumes:
   db_data:
+  redis_data:
