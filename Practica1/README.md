@@ -221,12 +221,13 @@ Para evitar que los datos se pierdan al eliminar o recrear el contenedor de MySQ
 
 ## Caché - Redis
 
-Redis se utiliza como sistema de caché únicamente en el entorno de producción (prod).
-Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
-En desarrollo (dev), Redis no se despliega. De este modo, el entorno de desarrollo utiliza únicamente Flask y MySQL, mientras que producción incorpora el servicio adicional de caché.
+Redis se utiliza como sistema de caché únicamente en el entorno de producción (`prod`), en desarrollo (dev), Redis no se despliega. Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
 
-Si Redis no está disponible, las funciones de caché capturan el error y permiten que Flask intente obtener la imagen desde MySQL.
-Por tanto, la caché no debe ser imprescindible para que la aplicación pueda acceder a los datos persistentes.
+Si Redis no está disponible, las funciones de caché capturan el error y permiten que Flask obtenga la imagen directamente desde MySQL. De la misma manera si MySQL se encuentra fuera de servicio y quedan guardados datos en Redis, Flask obtiene de ella una base de datos reducida únicamente con una información muy básica a cerca de los peces, entre ella, la imagen.
+
+Por tanto, Redis debe actuar como un complemento de la base de datos y no como un requisito indispensable para acceder a los datos persistentes. En cambio, MySQL es imprescindible para incorporar nuevos datos o modificar los existentes de forma persistente, ya que Redis almacena una copia temporal de la información y no es la fuente principal de los datos.
+
+Funcionamiento de Redis en las peticiones de imágenes:
 
 ```mermaid
 flowchart TD
@@ -241,7 +242,26 @@ flowchart TD
 
 ## Creación de Makefile para la automatización
 
+Finalmente, para simplificar la gestión de los entornos de desarrollo y producción, se ha implementado un **Makefile** que automatiza las operaciones más habituales de Docker Compose, como iniciar, detener y eliminar los servicios, contenedores y recursos asociados a cada entorno.
 
+Además, se ha incluido el comando `make setup`, cuyo objetivo es facilitar la preparación inicial del proyecto tras clonar el repositorio. De este modo, cualquier persona puede configurar el entorno de forma sencilla y reproducible, reduciendo la necesidad de realizar pasos manuales y facilitando tanto la modificación y ampliación de la aplicación como la comprobación de su correcto funcionamiento.
 
-Hacer un Make setup para que el profe esté contento.
-Debemos saber en todo momento Como? Cuando? Es decir, que saber el pq en todo momento
+Lista de los diferentes comandos creados:
+
+| Comando | Operación |
+|---|---|
+| `setup` | Comprueba los requisitos del proyecto y prepara ambos entornos |
+| `show-docker-status` | Muestra el estado general de los recursos de Docker |
+| `up-dev` | Inicia el entorno de desarrollo |
+| `up-prod` | Inicia el entorno de producción |
+| `test-db-dev` | Comprueba que MySQL acepta conexiones TCP, que las credenciales son válidas, que el usuario puede acceder a la base de datos y que puede ejecutar una consulta SQL en el entorno de desarrollo |
+| `test-db-prod` | Comprueba que MySQL acepta conexiones TCP, que las credenciales son válidas, que el usuario puede acceder a la base de datos y que puede ejecutar una consulta SQL en el entorno de producción |
+| `down-dev` | Detiene y elimina los contenedores y redes de desarrollo |
+| `down-prod` | Detiene y elimina los contenedores y redes de producción |
+| `down` | Detiene y elimina los contenedores y redes de ambos entornos |
+| `build` | Construye las imágenes de ambos entornos |
+| `logs-dev` | Muestra los logs de desarrollo |
+| `logs-prod` | Muestra los logs de producción |
+| `ps-dev` | Muestra el estado de los servicios de desarrollo |
+| `ps-prod` | Muestra el estado de los servicios de producción |
+| `purge-all` | Detiene ambos entornos y elimina contenedores, redes, volúmenes e imágenes asociadas |
