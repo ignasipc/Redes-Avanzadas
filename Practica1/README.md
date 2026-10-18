@@ -10,7 +10,75 @@ A lo largo de la práctica se trabajarán conceptos fundamentales del ecosistema
 
 El propósito final es obtener una infraestructura organizada, reproducible y fácil de gestionar, mediante el despliegue de aplicaciones con Docker Compose.
 
-## Preparación para el proyecto
+## Guía de instalación y ejecución paso a paso
+
+Requisitos previos antes de ejecutar el proyecto, es necesario disponer de:
+
+- Git, para descargar el proyecto.
+- Docker, para ejecutar los contenedores.
+- Docker Compose, integrado en las versiones actuales de Docker como docker compose.
+- Make, para utilizar los comandos definidos en el Makefile.
+- Los archivos del proyecto.
+
+Primero de todo comprobamos que tienes descargado git con el comando `git --version`, si no lo tienes deberás descargarlo. Una vez que haya sido comprobado, podemos clonar el repositorio mediante el siguiente comando:
+
+```
+git clone git@github.com:ignasipc/Redes-Avanzadas.git
+```
+
+Con el repositorio descargado podemos acceder al trabajo actual cambiándonos al directorio correspondiente. Ejecutamos el siguiente comando:
+
+```
+cd Redes-Avanzadas/Practica1/
+```
+
+Ahora solo nos falta crear los archivos con las variables de entorno, `.env.dev` y `.env.prod`, que deben tener el siguiente formato (hay que cambiar 'XXXX' por valores adecuados, teniendo el puerto web diferente en cada archivo):
+
+```
+## =========================
+# CONFIGURACIÓN WEB
+# =========================
+WEB_PORT_DEV=XXXX
+
+# =========================
+# CONFIGURACIÓN MYSQL
+# =========================
+MYSQL_PORT_DEV=3306
+
+# Base de datos
+MYSQL_DATABASE=XXXX
+
+# Usuario root
+MYSQL_ROOT_PASSWORD=XXXX
+
+# Usuario
+MYSQL_USER=XXXX
+MYSQL_PASSWORD=XXXX
+
+# =========================
+# CONFIGURACIÓN REDIS (SOLAMENTE PARA .env.prod !!!)
+# =========================
+REDIS_PORT_PROD=6379
+```
+
+Una vez creados y configurados los archivos `.env.dev` y `.env.prod`, ejecutaremos `make setup`. Este objetivo comprueba los requisitos necesarios para trabajar con Docker, verifica la existencia de los archivos de configuración y valida que Docker Compose pueda interpretar ambos entornos. Si también incluye la construcción de las imágenes, esta operación se realizará durante la preparación del proyecto. El comando no instala automáticamente las herramientas que falten.
+
+Puedes ejecutar el siguiente comando para saber si cumples con los cuatro primeros puntos anteriores:
+
+``` 
+git --version
+docker --version
+docker compose version
+make --version
+```
+
+Una vez completadas estas comprobaciones, el proyecto estará preparado para iniciar los servicios. Si alguno de los requisitos no está instalado o la configuración contiene errores, será necesario corregirlos antes de continuar.
+
+Para ejecutar, parar, eliminar, etc. puedes ejecutar los comandos make ya preparados. Consulta la [lista de comandos make](#lista-de-comandos-make) para conocer todas las operaciones disponibles.
+
+Si simplemente quieres ejecutar el entorno `dev` o `prod` escribe simplemente en la terminal `make up-dev` o bien `make up-prod` y ejecuta el comando.
+
+## Preparación del proyecto
 
 Antes de adentrarnos a generar archivos y documentos para la práctica, vamos a organizar qué utilizaremos. 
 
@@ -22,8 +90,10 @@ Seguiremos la siguiente estructura:
 | HTML, CSS y JavaScript | Interfaz de la página web |
 | MySQL | Base de datos |
 | Redis | Caché |
-| Docker Compose | Orquestar los contenedores de la aplicación y los servicios|
+| Docker Compose | Orquestación de contenedores y servicios |
 | Makefile | Automatizar las operaciones habituales |
+
+Crearemos una carpeta app donde tendremos todos los archivos acerca del HTML, CSS y JavaScript de la página Web, una carpeta db con todo lo necesario para la inicialización de nuestra Base de Datos, carpetas con imágenes para añadir ejemplos para hacer testeos y los archivos Docker Compose, los `.env.*` y el Makefile para las automatizaciones.
 
 La organización de las carpetas quedará tal que así:
 
@@ -78,7 +148,9 @@ flowchart TD
     G <--> H[Volumen]
 ```
 
-Una pequeña observación a cerca de los dos entornos es que tanto la WEB como la Base de Datos tienen el mismo puerto en `prod` y en `dev`. Entonces, no habrán conflictos? No, ya que el echo de compartir el mismo número de puerto no significa que compartan la misma base de datos. No hay ningún conflicto porque <u>cada entorno tiene su propia red y sus propios servicios</u>, haciendo que sean distintos el uno del otro.
+Una observación importante es que los servicios MySQL y Flask utilizan los mismos puertos internos en ambos entornos. Esto no genera conflictos porque cada entorno dispone de sus propios contenedores y de su propia red de Docker Compose. Además, los puertos publicados en el host pueden configurarse de forma independiente: por ejemplo, desarrollo puede utilizar el puerto 8081 y producción el 8080 para acceder a la aplicación web.
+
+Los servicios MySQL y Redis no publican puertos en el host, por lo que se accede a ellos a través de la red interna de Docker. De este modo, los dos entornos mantienen sus servicios y sus volúmenes separados.
 
 ## Diseño de la página web
 
@@ -136,7 +208,7 @@ Cada tarjeta incluye tres acciones diferenciadas:
 
 - **Incrementar *stock* (+ 1 unidad):** aumenta el stock en una unidad cuando llega nuevo *stock*.
 
-- **Incrementar *stock* (− 1 unidad):** reduce el stock en una unidad cuando un pez se vende, se pierde o muere. La ficha permanece en el catálogo y se marca como agotada cuando llega a cero.
+- **Reducir *stock* (− 1 unidad):** reduce el stock en una unidad cuando un pez se vende, se pierde o muere. La ficha permanece en el catálogo y se marca como agotada cuando llega a cero.
 
 - **Eliminar ficha:** elimina del catálogo el registro completo de esa especie. Esta acción se reserva para cuando se quiera retirar todo el producto del inventario, no para registrar la salida de una sola unidad.
 
@@ -179,8 +251,8 @@ Flask recibe las peticiones del navegador, valida los datos enviados, consulta o
 
 El endpoint `/status` permite consultar el estado de los servicios desde el navegador:
 
-- `http://localhost:8081/status` para DEV.
-- `http://localhost:8080/status` para PROD.
+- `http://localhost:8081/status` para **DEV**.
+- `http://localhost:8080/status` para **PROD**.
 
 <p align="center">
   <img src="imagesP1/endpointStatus.png" 
@@ -221,13 +293,27 @@ Para evitar que los datos se pierdan al eliminar o recrear el contenedor de MySQ
 
 ## Caché - Redis
 
-Redis se utiliza como sistema de caché únicamente en el entorno de producción (`prod`), en desarrollo (dev), Redis no se despliega. Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
+Redis se utiliza como sistema de caché únicamente en el entorno de producción (`prod`). En desarrollo (`dev`) no se despliega este servicio.
 
-Si Redis no está disponible, las funciones de caché capturan el error y permiten que Flask obtenga la imagen directamente desde MySQL. De la misma manera si MySQL se encuentra fuera de servicio y quedan guardados datos en Redis, Flask obtiene de ella una base de datos reducida únicamente con una información muy básica a cerca de los peces, entre ella, la imagen.
+Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
 
-Por tanto, Redis debe actuar como un complemento de la base de datos y no como un requisito indispensable para acceder a los datos persistentes. En cambio, MySQL es imprescindible para incorporar nuevos datos o modificar los existentes de forma persistente, ya que Redis almacena una copia temporal de la información y no es la fuente principal de los datos.
+### Funcionamiento de la caché
 
-Funcionamiento de Redis en las peticiones de imágenes:
+Cuando Flask necesita una imagen, intenta obtenerla primero de Redis. Si la imagen no está almacenada en caché, consulta MySQL y, si la encuentra, puede guardarla en Redis para reutilizarla en futuras peticiones.
+
+Si Redis no está disponible, la aplicación puede intentar obtener las imágenes directamente de MySQL, siempre que este servicio funcione correctamente.
+
+Además, en producción se almacena una copia del catálogo en Redis. Si MySQL deja de estar disponible y existe una copia previamente guardada, Flask puede utilizar la información disponible en caché para mostrar el catálogo en modo de solo lectura.
+
+La información que puede recuperarse depende de lo que se haya almacenado previamente. Por tanto, Redis no garantiza que todos los datos o imágenes estén disponibles cuando MySQL falla.
+
+### Redis como complemento de MySQL
+
+MySQL es la fuente principal de los datos persistentes. Redis almacena copias en caché para mejorar determinados accesos y facilitar la consulta de información cuando MySQL no responde.
+
+Por este motivo, Redis no sustituye a MySQL: las operaciones que deban persistir cambios en el inventario requieren que MySQL esté disponible.
+
+El funcionamiento de la caché de imágenes se resume en el siguiente diagrama:
 
 ```mermaid
 flowchart TD
@@ -246,12 +332,12 @@ Finalmente, para simplificar la gestión de los entornos de desarrollo y producc
 
 Además, se ha incluido el comando `make setup`, cuyo objetivo es facilitar la preparación inicial del proyecto tras clonar el repositorio. De este modo, cualquier persona puede configurar el entorno de forma sencilla y reproducible, reduciendo la necesidad de realizar pasos manuales y facilitando tanto la modificación y ampliación de la aplicación como la comprobación de su correcto funcionamiento.
 
-Lista de los diferentes comandos creados:
+### Lista de comandos make:
 
 | Comando | Operación |
 |---|---|
-| `setup` | Comprueba los requisitos del proyecto y prepara ambos entornos |
-| `show-docker-status` | Muestra el estado general de los recursos de Docker |
+| `setup` | Comprueba los requisitos del proyecto |
+| `show-docker-status` | Muestra el estado general de los recursos de Docker (Ejecuciones, imágenes y volúmenes) |
 | `up-dev` | Inicia el entorno de desarrollo |
 | `up-prod` | Inicia el entorno de producción |
 | `test-db-dev` | Comprueba que MySQL acepta conexiones TCP, que las credenciales son válidas, que el usuario puede acceder a la base de datos y que puede ejecutar una consulta SQL en el entorno de desarrollo |
@@ -265,6 +351,69 @@ Lista de los diferentes comandos creados:
 | `ps-dev` | Muestra el estado de los servicios de desarrollo |
 | `ps-prod` | Muestra el estado de los servicios de producción |
 | `purge-all` | Detiene ambos entornos y elimina contenedores, redes, volúmenes e imágenes asociadas |
+
+## Pruebas y verificaciones
+
+El objetivo de estas pruebas es comprobar que la aplicación funciona correctamente en los entornos de desarrollo (`dev`) y producción (`prod`), verificando el funcionamiento de la web, la conexión con MySQL, la persistencia de los datos, el uso de Redis como caché y el comportamiento de la aplicación cuando falla alguno de los servicios.
+
+
+
+## Explicación de los healthchecks
+
+Los healthchecks de Docker permiten comprobar periódicamente si un contenedor está funcionando correctamente. No se limitan a comprobar que el contenedor esté encendido, sino que ejecutan una prueba para determinar si el servicio está operativo.
+
+En este proyecto se utilizan para comprobar el estado de MySQL, Redis y Flask. Los tres tienen pruebas diferentes, adaptadas a cada servicio.
+
+### Flask
+```
+healthcheck:
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/status', timeout=3).read()"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 10s
+```
+Este healthcheck comprueba la propia aplicación Flask mediante una petición HTTP al endpoint `/status`.
+
+- `test`: utiliza Python para realizar una petición HTTP a `http://127.0.0.1:5000/status`.
+- `interval: 30s`: comprueba la aplicación cada 30 segundos.
+- `timeout: 5s`: establece un máximo de 5 segundos para la ejecución del healthcheck. La petición HTTP tiene, además, un tiempo de espera propio de 3 segundos.
+- `retries: 3`: después de tres comprobaciones fallidas consecutivas, marca el contenedor como unhealthy.
+- `start_period: 10s`: concede 10 segundos iniciales para que Flask arranque.
+
+### MySQL
+```
+healthcheck:
+  test: ["CMD-SHELL", "mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 30s
+```
+Este healthcheck utiliza el comando mysqladmin ping para comprobar si el servidor MySQL responde a través de TCP.
+
+- `test`: ejecuta la prueba de disponibilidad de MySQL utilizando el usuario root y su contraseña.
+- `interval: 10s`: realiza una comprobación cada 10 segundos.
+- `timeout: 5s`: si la prueba tarda más de 5 segundos, se considera fallida.
+- `retries: 12`: permite hasta 12 comprobaciones fallidas consecutivas antes de marcar el contenedor como unhealthy.
+- `start_period: 30s`: concede 30 segundos iniciales para que MySQL se inicie sin contabilizar normalmente los fallos de arranque como definitivos.
+
+### Redis
+```
+healthcheck:
+  test: ["CMD", "redis-cli", "ping"]
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 5s
+```
+Este healthcheck ejecuta redis-cli ping, que comprueba si el servidor Redis responde.
+
+- `test`: envía una petición PING a Redis. Si responde correctamente, devuelve PONG.
+- `interval: 10s`: comprueba el servicio cada 10 segundos.
+- `timeout: 3s`: establece un máximo de 3 segundos para completar la prueba.
+- `retries: 5`: tras cinco comprobaciones fallidas consecutivas, marca el contenedor como unhealthy.
+- `start_period: 5s`: concede un periodo inicial de 5 segundos para que Redis arranque.
 
 ## Declaración de uso de inteligencia artificial
 - **Herramienta**: ChatGPT (OpenAI), modelo GPT-6.
