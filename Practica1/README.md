@@ -320,19 +320,13 @@ La caché permite reutilizar información almacenada temporalmente y reducir alg
 
 Cuando Flask necesita una imagen, intenta obtenerla primero de Redis. Si la imagen no está almacenada en caché, consulta MySQL y, si la encuentra, puede guardarla en Redis para reutilizarla en futuras peticiones.
 
-Si Redis no está disponible, la aplicación puede intentar obtener las imágenes directamente de MySQL, siempre que este servicio funcione correctamente.
+Para las imágenes, el flujo previsto es que Flask intente obtenerlas primero de Redis. Si la imagen no está en la caché, la aplicación consulta MySQL y puede guardar en Redis la imagen recuperada para reutilizarla en peticiones posteriores. Si Redis no está disponible, la aplicación puede recurrir directamente a MySQL, siempre que el código contemple ese camino y MySQL funcione.
 
-Además, en producción se almacena una copia del catálogo en Redis. Si MySQL deja de estar disponible y existe una copia previamente guardada, Flask puede utilizar la información disponible en caché para mostrar el catálogo en modo de solo lectura.
+En producción también se puede utilizar una copia del catálogo almacenada en Redis como alternativa cuando MySQL no responde. Si existe información guardada y la aplicación activa el modo de solo lectura, la interfaz muestra la información básica disponible (nombre, stock e imágenes que también se hayan guardado en caché) y deshabilita las operaciones de modificación. En este modo se limita la búsqueda al nombre común y se ocultan algunos datos y filtros.
 
-La información que puede recuperarse depende de lo que se haya almacenado previamente. Por tanto, Redis no garantiza que todos los datos o imágenes estén disponibles cuando MySQL falla.
+La caché no garantiza que todo el catálogo ni todas las imágenes estén disponibles durante una caída: la información recuperable depende de lo que se haya guardado previamente y de las claves que sigan disponibles en Redis.
 
-### Redis como complemento de MySQL
-
-MySQL es la fuente principal de los datos persistentes. Redis almacena copias en caché para mejorar determinados accesos y facilitar la consulta de información cuando MySQL no responde.
-
-Por este motivo, Redis no sustituye a MySQL: las operaciones que deban persistir cambios en el inventario requieren que MySQL esté disponible.
-
-El funcionamiento de la caché de imágenes se resume en el siguiente diagrama:
+El siguiente diagrama representa el flujo normal de consulta de una imagen cuando Redis está disponible:
 
 ```mermaid
 flowchart TD
@@ -371,6 +365,8 @@ Además, se ha incluido el comando `make setup`, cuyo objetivo es facilitar la p
 | `ps-prod` | Muestra el estado de los servicios de producción |
 | `purge-all` | Detiene ambos entornos y elimina contenedores, redes, volúmenes e imágenes asociadas |
 
+⚠️ Advertencia: no ejecutes `make purge-all` ni `docker compose down -v` si necesitas conservar los datos almacenados en los volúmenes de MySQL. El comando `make down` no elimina los volúmenes en esta configuración.
+
 ## Pruebas y verificaciones
 
 El objetivo de estas pruebas es comprobar que la aplicación funciona correctamente en los entornos de desarrollo (`dev`) y producción (`prod`). Para ello, verificaremos el funcionamiento de la web, la conexión con MySQL, la persistencia de los datos, el uso de Redis como sistema de caché y el comportamiento de la aplicación cuando alguno de los servicios deja de estar disponible.
@@ -394,8 +390,8 @@ Como podemos observar, todos los servicios de los entornos `dev` y `prod` se ini
 
 Para comprobar el funcionamiento de la interfaz, accedemos a la aplicación desde el navegador (según el puerto que se haya indicado en los `.env`):
 
-- Desarrollo: `http://localhost:8081`
-- Producción: `http://localhost:8080`
+- Desarrollo: [`http://localhost:8081`](http://localhost:8081)
+- Producción: [`http://localhost:8080`](http://localhost:8080)
 
 Una vez cargada la página, realizamos distintas operaciones para verificar el comportamiento del catálogo:
 
@@ -419,8 +415,8 @@ También comprobamos que los entornos de desarrollo y producción mantienen cat�
 
 Para verificar el estado de los servicios desde la propia aplicación, accedemos al endpoint `/status` de cada entorno:
 
-- Desarrollo: `http://localhost:8081/status`
-- Producción: `http://localhost:8080/status`
+- Desarrollo: [`http://localhost:8081/status`](http://localhost:8081/status)
+- Producción: [`http://localhost:8080/status`](http://localhost:8080/status)
 
 Este endpoint permite comprobar si las dependencias necesarias para el funcionamiento de la aplicación están disponibles. En desarrollo se comprueba la conexión con MySQL, mientras que en producción se comprueban tanto MySQL como Redis.
 
@@ -518,7 +514,7 @@ Con estas pruebas verificamos el funcionamiento básico de Redis como caché y c
 
 ## Explicación de los healthchecks
 
-Los healthchecks de Docker permiten comprobar periódicamente si un contenedor está funcionando correctamente. No se limitan a comprobar que el contenedor esté encendido, sino que ejecutan una prueba para determinar si el servicio está operativo.
+Los *healthchecks* de Docker permiten comprobar periódicamente si un contenedor está funcionando correctamente. No se limitan a comprobar que el contenedor esté encendido, sino que ejecutan una prueba para determinar si el servicio está operativo.
 
 En este proyecto se utilizan para comprobar el estado de MySQL, Redis y Flask. Los tres tienen pruebas diferentes, adaptadas a cada servicio.
 
