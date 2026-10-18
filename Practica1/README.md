@@ -69,12 +69,16 @@ flowchart TD
 
     E(USUARIO) <-->|localhost:8080| F[WEB
     Flask
-    Puerto: 5000] <-->|internal_net| I[Redis]
+    Puerto: 5000] <-->|internal_net| I[Caché
+    Redis
+    Puerto: 6379]
     F <-->|internal_net| G[Base de datos
     MySQL
     Puerto: 3306]
     G <--> H[Volumen]
 ```
+
+Una pequeña observación a cerca de los dos entornos es que tanto la WEB como la Base de Datos tienen el mismo puerto en `prod` y en `dev`. Entonces, no habrán conflictos? No, ya que el echo de compartir el mismo número de puerto no significa que compartan la misma base de datos. No hay ningún conflicto porque <u>cada entorno tiene su propia red y sus propios servicios</u>, haciendo que sean distintos el uno del otro.
 
 ## Diseño de la página web
 
@@ -94,7 +98,7 @@ La página principal mostrará los peces registrados mediante tarjetas informati
 - Unidades disponibles en *stock*
 - Una imagen
 
-Aparte, se mostrará el número de especies en el catálogo, el número total de unidades en *stock* y el número de especies agotadas.
+Además, se mostrará el número de especies en el catálogo, el número total de unidades en *stock* y el número de especies agotadas.
 
 #### 2 - Filtrado de peces
 
@@ -122,13 +126,13 @@ El formulario permitirá introducir la siguiente información:
 - Precio
 - Unidades en *stock*
 - Descripción (opcional)
-- Imagen (opcional)
+- Imagen de máximo 5MB (opcional)
 
-Los campos correspondientes a categorías predefinidas se seleccionarán mediante desplegables, mientras que la especie se introducirá como texto libre.
+Los campos correspondientes a categorías predefinidas se seleccionarán mediante desplegables, mientras que los campos sin categorías predefinidas como la especie o el nombre común se introducirá como texto libre.
 
 #### 4 - Gestionar el incremento y decremento del stock y eliminación de fichas
 
-Cada tarjeta incluye dos acciones diferenciadas:
+Cada tarjeta incluye tres acciones diferenciadas:
 
 - **Incrementar *stock* (+ 1 unidad):** aumenta el stock en una unidad cuando llega nuevo *stock*.
 
@@ -136,13 +140,11 @@ Cada tarjeta incluye dos acciones diferenciadas:
 
 - **Eliminar ficha:** elimina del catálogo el registro completo de esa especie. Esta acción se reserva para cuando se quiera retirar todo el producto del inventario, no para registrar la salida de una sola unidad.
 
+Todos estos botones presentes en cada ficha de los peces, <u>al ser pulsados se deshabilitan hasta recibir una respuesta de Flask</u>. Tras una respuesta correcta, se vuelven a habilitar todos los botones.
+
 #### 5 - Estado de los servicios
 
-La cabecera está preparada para mostrar el estado real y actual de MySQL y Redis mediante el *endpoint* `/status`. Redis solo estará habilitado en producción; en desarrollo se indicará como no habilitado.
-
-### Diseño de la interfaz
-
-La interfaz se desarrollará utilizando **HTML, CSS y JavaScript**, con una distribución visual basada en tarjetas y filtros para facilitar la navegación y la gestión del inventario.
+La cabecera está preparada para mostrar el estado real y actual de MySQL y Redis mediante el *endpoint* `/status`. Redis solo estará habilitado en producción; en desarrollo se indicará como no habilitado. El estado de los servicios se comprueban automáticamente en un intervalo de 10s gracias a una función dentro del `.js`.
 
 La siguiente imagen muestra el diseño final de la aplicación:
 
@@ -151,45 +153,95 @@ La siguiente imagen muestra el diseño final de la aplicación:
        alt="Página web del stock de la tienda de peces">
 </p>
 
-### Integración con la arquitectura Docker
+## Frontend - HTML, CSS y JavaScript
 
-La aplicación web se implementará utilizando **Python y Flask** para gestionar la lógica del servidor y las comunicaciones con los servicios externos.
+La interfaz de usuario de Aquarium se ha desarrollado utilizando HTML, CSS y JavaScript. Estas tres tecnologías trabajan conjuntamente para ofrecer una interfaz intuitiva, dinámica y accesible desde el navegador.
 
-- **MySQL:** almacenará de forma persistente la información de los peces y su stock.
-- **Redis:** se utilizará como caché únicamente en el entorno de producción, con el objetivo de reducir consultas repetidas y pesadas a la base de datos.
+La función de cada uno es la siguiente:
 
-De este modo, Aquarium servirá como aplicación de ejemplo para poner en práctica la orquestación de contenedores, la persistencia de datos, la comunicación entre servicios y la gestión de entornos con Docker Compose.
+- `HTML`: define la estructura y el contenido de la página web. Permite organizar los elementos de la interfaz, como las tarjetas de los peces, los filtros, los formularios y los botones de gestión del inventario.
+- `CSS`: define la presentación visual de la aplicación. Se encarga de los colores, las tipografías, la distribución de las tarjetas, los formularios emergentes y la adaptación de la interfaz a diferentes tamaños de pantalla.
+- `JavaScript`: añade interactividad a la página. Permite gestionar los filtros del catálogo, actualizar la interfaz, enviar peticiones HTTP a Flask y reaccionar a las respuestas del servidor sin necesidad de recargar toda la página.
 
-## Implementación de MySQL
+El frontend se comunica con Flask mediante peticiones `HTTP`. De esta manera, las acciones realizadas por el usuario pueden modificar los datos almacenados en MySQL sin que el navegador tenga acceso directo a la base de datos.
 
-Vamos a conectar Aquarium con MySQL para que el catálogo deje de utilizar datos ficticios en el HTML y muestre los registros almacenados realmente en la base de datos. También he preparado las operaciones para que añadir peces, aumentar o reducir el stock y eliminar fichas persista en MySQL.
+Por ejemplo, cuando el usuario añade un pez, JavaScript recoge los datos del formulario y envía una petición `POST` a `/api/fish`. Flask valida la información, la guarda en MySQL y devuelve una respuesta **JSON** que permite actualizar la interfaz.
 
-El cambio fundamental es que Flask consulta MySQL y proporciona los resultados al HTML mediante Jinja2.
+## Backend - Flask + Python
 
-El archivo `db/init.sql` crea la tabla y añade seis peces de ejemplo: guppy, pez payaso, pez globo, pez dorado, pez betta y neón chino. Así podremos probar la aplicación sin tener que introducir todos los registros manualmente. Cuando MySQL inicializa un volumen de datos vacío, la imagen oficial ejecuta los scripts de inicialización de `/docker-entrypoint-initdb.d`. Estos scripts se importan en la base de datos indicada por `MYSQL_DATABASE`.
+El backend se ha desarrollado con Python y Flask, un framework que permite implementar aplicaciones web mediante rutas `HTTP` y funciones asociadas a cada una de ellas.
 
-Los datos de ejemplo se almacenan en MySQL: ya no son tarjetas ficticias escritas en el HTML.
+Su responsabilidad principal es actuar como intermediario entre el frontend y los servicios de almacenamiento de MySQL.
 
-## Creamos el Dockerfile de Flask
+Flask recibe las peticiones del navegador, valida los datos enviados, consulta o modifica MySQL, utiliza Redis cuando corresponde y devuelve una respuesta HTTP. El navegador no accede directamente a MySQL ni a Redis. Todas las operaciones pasan por Flask, que determina qué servicios debe utilizar en cada caso.
 
-## Configuración del entorno de desarrollo (dev)
+### Endpoint de estado `/status`
 
-## Añadir Redis en producción
+El endpoint `/status` permite consultar el estado de los servicios desde el navegador:
 
-## Implementación
+- `http://localhost:8081/status` para DEV.
+- `http://localhost:8080/status` para PROD.
+
+<p align="center">
+  <img src="imagesP1/endpointStatus.png" 
+       alt="Estado de los servicios con /status">
+</p>
+
+Los puertos corresponden a la configuración definida en Docker Compose.
+
+El endpoint ejecuta una consulta sencilla a MySQL (hace un `SELECT 1;`) y, cuando Redis está habilitado, realiza una comprobación mediante `ping`. La respuesta contiene información sobre el estado de los servicios, si la aplicación está en modo de solo lectura y si existe un catálogo disponible en caché para utilizar cuando MySQL no responde.
+
+## Base de Datos - MySQL
+
+MySQL es el sistema de gestión de bases de datos relacional utilizado para almacenar de forma persistente la información del inventario de Aquarium.
+
+A diferencia de Redis, MySQL conserva los datos como fuente principal de información de la aplicación. Por tanto, las operaciones de creación, modificación y eliminación se realizan sobre esta base de datos.
+
+### Estructura de los datos
+El archivo `db/init.sql` define la estructura inicial de la base de datos y crea la tabla fish, donde se almacena la información de los peces.
+
+Cada registro incluye los siguientes campos:
+
+| Campo | Función |
+|---|---|
+| `id` | Identificador del pez |
+| `name` | Nombre común |
+| `species` | Nombre de la especie |
+| `water_type` | Tipo de agua: dulce o salada |
+| `temperature` | Preferencia de temperatura: fría o cálida |
+| `price` | Precio del ejemplar |
+| `stock` | Unidades disponibles |
+| `description` | Descripción opcional |
+| `image_data` | Contenido binario de la imagen, si existe |
+| `image_mime_type` | Tipo MIME de la imagen |
+
+### Persistencia mediante volúmenes Docker
+
+Para evitar que los datos se pierdan al eliminar o recrear el contenedor de MySQL, se utiliza un volumen Docker. El volumen almacena los archivos de la base de datos fuera del ciclo de vida del contenedor. Mientras no se elimine el volumen, los datos pueden conservarse aunque se sustituya el contenedor que ejecuta MySQL.
+
+## Caché - Redis
+
+Redis se utiliza como sistema de caché únicamente en el entorno de producción (prod).
+Su objetivo es reducir determinadas consultas a MySQL y permitir que parte de la información continúe disponible temporalmente cuando la base de datos no responde.
+En desarrollo (dev), Redis no se despliega. De este modo, el entorno de desarrollo utiliza únicamente Flask y MySQL, mientras que producción incorpora el servicio adicional de caché.
+
+Si Redis no está disponible, las funciones de caché capturan el error y permiten que Flask intente obtener la imagen desde MySQL.
+Por tanto, la caché no debe ser imprescindible para que la aplicación pueda acceder a los datos persistentes.
+
+```mermaid
+flowchart TD
+    A[Petición de imagen] --> B{¿Está en Redis?}
+    B -- Sí --> C[Devolver imagen]
+    B -- No --> D[Consultar MySQL]
+    D --> E{¿Existe la imagen?}
+    E -- Sí --> F[Guardar en Redis]
+    E -- No --> G[Error 404]
+    F --> H[Devolver imagen]
+```
 
 ## Creación de Makefile para la automatización
 
 
 
-Si hago [localhost/ ](http://localhost:8081/status).
 Hacer un Make setup para que el profe esté contento.
 Debemos saber en todo momento Como? Cuando? Es decir, que saber el pq en todo momento
-
-
-
-
-
-
-
-
