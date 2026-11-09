@@ -33,13 +33,15 @@ cd Redes-Avanzadas/Practica1/
 
 Ahora solo nos falta crear los archivos con las variables de entorno, `.env.dev` y `.env.prod`. Los cuales no están disponibles en este repositorio al contener datos sensibles, como por ejemplo contraseñas y variables de entorno que no deseamos que sean conocidos por los demás.
 
-Deben tener el siguiente formato (hay que cambiar 'XXXX' por valores adecuados, teniendo en cuenta que el puerto web debe ser diferente para `dev` y `prod`):
+Deben tener el siguiente formato (⚠️ IMPORTANTE ⚠️: hay que cambiar 'XXXX' por valores adecuados, teniendo en cuenta que el puerto web debe ser diferente para `dev` y `prod`):
+
+- ##### Ejemplo de archivo `.env.dev`:
 
 ```
 ## =========================
 # CONFIGURACIÓN WEB
 # =========================
-WEB_PORT_DEV=XXXX   # En los ejemplos y ejecuciones tenemos 8080 para prod y 8081 para dev
+WEB_PORT_DEV=XXXX   # En los ejemplos y ejecuciones tenemos 8081 para dev
 
 # =========================
 # CONFIGURACIÓN MYSQL
@@ -55,9 +57,34 @@ MYSQL_ROOT_PASSWORD=XXXX
 # Usuario
 MYSQL_USER=XXXX
 MYSQL_PASSWORD=XXXX
+```
+
+- ##### Ejemplo de archivo `.env.prod`:
+
+```
+## =========================
+# CONFIGURACIÓN WEB
+# =========================
+WEB_PORT_PROD=XXXX   # En los ejemplos y ejecuciones tenemos 8080 para prod
+
 
 # =========================
-# CONFIGURACIÓN REDIS (SOLAMENTE PARA .env.prod !!!)
+# CONFIGURACIÓN MYSQL
+# =========================
+MYSQL_PORT_PROD=3306
+
+# Base de datos
+MYSQL_DATABASE=XXXX
+
+# Usuario root
+MYSQL_ROOT_PASSWORD=XXXX
+
+# Usuario
+MYSQL_USER=XXXX
+MYSQL_PASSWORD=XXXX
+
+# =========================
+# CONFIGURACIÓN REDIS
 # =========================
 REDIS_PORT_PROD=6379
 ```
