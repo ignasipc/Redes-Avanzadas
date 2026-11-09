@@ -89,6 +89,8 @@ MYSQL_PASSWORD=XXXX
 REDIS_PORT_PROD=6379
 ```
 
+Cabe mencionar que los puertos de MySQL y Redis se han dejado ya indicados. No tienen que ser obligatoriamente esos puertos, pero son los puertos predeterminados de ambos servicios y es recomendado mantenerlos. MySQL utiliza `3306` para las conexiones clásicas cliente-servidor y Redis utiliza `6379` por defecto.
+
 Una vez creados y configurados los archivos `.env.dev` y `.env.prod`, ejecutaremos `make setup`. Este comando comprueba los requisitos necesarios para trabajar con Docker, verificando la existencia de los archivos de configuración y valida que Docker Compose pueda interpretar ambos entornos. El comando no instala automáticamente las herramientas que falten.
 
 Puedes ejecutar el siguiente comando para saber si cumples con los tres primeros puntos mencionados al principio de la [guía de instalación](#guia-de-instalacion-y-ejecucion):
@@ -157,7 +159,7 @@ Los archivos `.env.dev` y `.env.prod` se crean localmente dentro de `Practica1/`
 
 ### Arquitectura de los entornos
 
-El esquema siguiente representa los dos entornos: desarrollo (`dev`) a la izquierda y producción (`prod) a la derecha.
+El esquema siguiente representa los dos entornos: desarrollo (`dev`) a la izquierda y producción (`prod`) a la derecha.
 
 ```mermaid
 flowchart TD
@@ -180,9 +182,9 @@ flowchart TD
     G <--> H[Volumen]
 ```
 
-Los servicios de ambos entornos utilizan sus propios contenedores y redes, por lo que pueden usar los mismos puertos internos sin entrar en conflicto. Los puertos web publicados en el host son configurables y, si se ejecutan los dos entornos simultáneamente, deben ser distintos.
+Los servicios de los entornos de desarrollo y producción utilizan contenedores y redes Docker independientes, por lo que pueden utilizar los mismos puertos internos sin generar conflictos. El puerto interno es aquel en el que escucha un servicio dentro de su contenedor, mientras que el puerto publicado permite acceder a dicho servicio desde el host. Esta publicación se configura mediante la directiva `ports` de Docker Compose, utilizando el formato `PUERTO_HOST:PUERTO_CONTENEDOR`. En este proyecto, únicamente se publica el servicio web: el puerto 5000 del contenedor se encuentra asociado al puerto 8081 del host en desarrollo y al 8080 en producción. Ambos puertos externos son configurables mediante variables de entorno y deben ser diferentes si se ejecutan los dos entornos simultáneamente.
 
-MySQL y Redis no publican puertos en el host. La aplicación Flask se comunica con ellos a través de la red interna de Docker en su propio entorno. Cada entorno mantiene su propia base de datos y su propio volumen de MySQL; Redis y su volumen de caché solo se utilizan en producción.
+MySQL y Redis no publican sus puertos en el host, ya que no necesitan recibir conexiones externas. MySQL escucha en el puerto interno 3306 y Redis en el 6379, y Flask accede a ellos mediante los nombres de servicio `db` y `cache`, respectivamente, a través de la red interna de Docker de cada entorno. Por tanto, aunque estos servicios utilizan puertos internos, no están expuestos al host porque no tienen definida una directiva `ports` en su configuración. Cada entorno mantiene su propia base de datos MySQL y su correspondiente volumen persistente, mientras que Redis y su caché se utilizan exclusivamente en producción.
 
 ## Diseño de la página web
 
