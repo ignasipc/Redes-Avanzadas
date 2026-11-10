@@ -1,6 +1,8 @@
 import base64
 import json
 import os
+import re
+import threading
 from decimal import Decimal, InvalidOperation
 
 import mysql.connector
@@ -17,6 +19,11 @@ CACHE_ENABLED = os.getenv('CACHE_ENABLED', 'false').strip().lower() in {'1', 'tr
 CATALOG_CACHE_KEY = 'aquarium:catalog:v1'
 CACHE_TTL = int(os.getenv('CACHE_TTL_SECONDS', '0'))  # 0 = sin caducidad
 ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+# Debe coincidir con el tipo INT UNSIGNED de la columna fish.stock en MySQL.
+MAX_STOCK = 4_294_967_295
+_CACHE_RECONCILIATION_REQUIRED = CACHE_ENABLED
+_CACHE_RECONCILIATION_LOCK = threading.Lock()
+_IMAGE_INVALIDATION_TABLE_READY = False
 
 
 def get_db_connection():
@@ -41,6 +48,13 @@ def get_cache():
         decode_responses=False,
     )
 
+def mark_cache_reconciliation_required():
+    """Marca la caché para revisar sus claves cuando Redis vuelva a estar disponible."""
+    global _CACHE_RECONCILIATION_REQUIRED
+    if CACHE_ENABLED:
+        _CACHE_RECONCILIATION_REQUIRED = True
+
+
 def cache_set(key, value, ex=None):
     if not CACHE_ENABLED:
         return False
@@ -50,6 +64,7 @@ def cache_set(key, value, ex=None):
         client.set(key, value, ex=(ex or CACHE_TTL) or None)
         return True
     except RedisError:
+        mark_cache_reconciliation_required()
         app.logger.warning('No se ha podido actualizar la caché Redis', exc_info=True)
         return False
     finally:
@@ -65,6 +80,7 @@ def cache_get(key):
         client = get_cache()
         return client.get(key)
     except RedisError:
+        mark_cache_reconciliation_required()
         app.logger.warning('No se ha podido leer la caché Redis', exc_info=True)
         return None
     finally:
@@ -72,18 +88,184 @@ def cache_get(key):
             client.close()
 
 
-def invalidate_image_cache(fish_id):
-    if not CACHE_ENABLED:
+def ensure_image_cache_invalidations_table(connection):
+    """Crea una sola vez la cola durable de invalidaciones en cada worker."""
+    global _IMAGE_INVALIDATION_TABLE_READY
+    if _IMAGE_INVALIDATION_TABLE_READY:
         return
+    cursor = connection.cursor()
+    try:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fish_image_cache_invalidations (
+                fish_id INT UNSIGNED NOT NULL PRIMARY KEY,
+                invalidated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB
+        ''')
+        connection.commit()
+        _IMAGE_INVALIDATION_TABLE_READY = True
+    finally:
+        cursor.close()
+
+
+
+def reconcile_orphaned_image_cache():
+    """Elimina claves Redis de imágenes que ya no tienen una imagen en MySQL.
+
+    Se ejecuta al arrancar la aplicación y cuando se detecta una caída de Redis.
+    La comprobación se hace solo cuando MySQL y Redis están disponibles.
+    """
+    global _CACHE_RECONCILIATION_REQUIRED
+    if not CACHE_ENABLED or not _CACHE_RECONCILIATION_REQUIRED:
+        return True
+    if not _CACHE_RECONCILIATION_LOCK.acquire(blocking=False):
+        return True
+
+    connection = None
+    cursor = None
     client = None
     try:
+        connection = get_db_connection()
+        ensure_image_columns(connection)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('''
+            SELECT id
+            FROM fish
+            WHERE image_data IS NOT NULL AND OCTET_LENGTH(image_data) > 0
+        ''')
+        valid_image_ids = {int(row['id']) for row in cursor.fetchall()}
+
         client = get_cache()
-        client.delete(f'aquarium:fish:{fish_id}:image', f'aquarium:fish:{fish_id}:mime')
-    except RedisError:
-        app.logger.warning('No se ha podido invalidar la imagen en caché', exc_info=True)
+        client.ping()
+        stale_ids = set()
+        for key in client.scan_iter(match='aquarium:fish:*:image', count=200):
+            key_text = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+            match = re.fullmatch(r'aquarium:fish:(\d+):image', key_text)
+            if match and int(match.group(1)) not in valid_image_ids:
+                stale_ids.add(int(match.group(1)))
+
+        if stale_ids:
+            pipeline = client.pipeline(transaction=True)
+            for fish_id in stale_ids:
+                pipeline.delete(
+                    f'aquarium:fish:{fish_id}:image',
+                    f'aquarium:fish:{fish_id}:mime',
+                )
+            pipeline.execute()
+            app.logger.info(
+                'Reconciliación de Redis: eliminadas %s imágenes huérfanas',
+                len(stale_ids),
+            )
+
+        # También reconstruye el catálogo cacheado para no conservar peces borrados
+        # si Redis volvió mientras MySQL estaba caído.
+        cursor.execute('''
+            SELECT id, name, species, water_type, temperature, price, stock,
+                   description, image_mime_type
+            FROM fish
+            ORDER BY name ASC, id ASC
+        ''')
+        current_catalog = [serialize_fish(row) for row in cursor.fetchall()]
+        client.set(
+            CATALOG_CACHE_KEY,
+            json.dumps(current_catalog, ensure_ascii=False).encode('utf-8'),
+            ex=CACHE_TTL or None,
+        )
+
+        _CACHE_RECONCILIATION_REQUIRED = False
+        return True
+    except (MySQLError, RedisError, KeyError, ValueError):
+        _CACHE_RECONCILIATION_REQUIRED = True
+        app.logger.warning('No se ha podido reconciliar la caché de imágenes', exc_info=True)
+        return False
     finally:
-        if client:
+        if client is not None:
             client.close()
+        if cursor is not None:
+            cursor.close()
+        if connection is not None and connection.is_connected():
+            connection.close()
+        _CACHE_RECONCILIATION_LOCK.release()
+
+
+def process_pending_image_invalidations():
+    """Elimina de Redis imágenes de peces borrados, incluso tras una caída de Redis.
+
+    La cola se guarda en MySQL, por lo que sobrevive a la caída/recreación de Redis
+    y puede procesarla cualquier worker de Gunicorn cuando ambos servicios vuelvan.
+    """
+    if not CACHE_ENABLED:
+        return True
+
+    connection = None
+    cursor = None
+    catalog_cursor = None
+    client = None
+    try:
+        connection = get_db_connection()
+        ensure_image_cache_invalidations_table(connection)
+        cursor = connection.cursor()
+        cursor.execute(
+            'SELECT fish_id FROM fish_image_cache_invalidations ORDER BY invalidated_at'
+        )
+        fish_ids = [int(row[0]) for row in cursor.fetchall()]
+        if not fish_ids:
+            return True
+
+        client = get_cache()
+        client.ping()
+        pipeline = client.pipeline(transaction=True)
+        for fish_id in fish_ids:
+            pipeline.delete(
+                f'aquarium:fish:{fish_id}:image',
+                f'aquarium:fish:{fish_id}:mime',
+            )
+        pipeline.execute()
+
+        # Solo se eliminan las marcas pendientes después de confirmar el borrado en Redis.
+        cursor.executemany(
+            'DELETE FROM fish_image_cache_invalidations WHERE fish_id = %s',
+            [(fish_id,) for fish_id in fish_ids],
+        )
+
+        # Refresca también el catálogo: el borrado pudo haberse hecho mientras
+        # Redis estaba caído y su copia anterior todavía contiene el pez eliminado.
+        catalog_cursor = connection.cursor(dictionary=True)
+        catalog_cursor.execute('''
+            SELECT id, name, species, water_type, temperature, price, stock,
+                   description, image_mime_type
+            FROM fish
+            ORDER BY name ASC, id ASC
+        ''')
+        current_catalog = [serialize_fish(row) for row in catalog_cursor.fetchall()]
+        client.set(
+            CATALOG_CACHE_KEY,
+            json.dumps(current_catalog, ensure_ascii=False).encode('utf-8'),
+            ex=CACHE_TTL or None,
+        )
+        connection.commit()
+        app.logger.info(
+            'Caché de imágenes reconciliada: %s invalidación(es) procesada(s)',
+            len(fish_ids),
+        )
+        return True
+    except (MySQLError, RedisError, KeyError, ValueError):
+        mark_cache_reconciliation_required()
+        if connection is not None and connection.is_connected():
+            connection.rollback()
+        app.logger.warning(
+            'No se han podido procesar las invalidaciones pendientes de imágenes',
+            exc_info=True,
+        )
+        return False
+    finally:
+        if client is not None:
+            client.close()
+        if catalog_cursor is not None:
+            catalog_cursor.close()
+        if cursor is not None:
+            cursor.close()
+        if connection is not None and connection.is_connected():
+            connection.close()
 
 
 def ensure_image_columns(connection):
@@ -215,10 +397,18 @@ def status():
             cache_status = 'connected'
             cache_available = True
         except (RedisError, ValueError):
+            mark_cache_reconciliation_required()
             cache_status = 'disconnected'
         finally:
             if client:
                 client.close()
+
+    # Cuando MySQL y Redis vuelven a estar disponibles, procesa las invalidaciones
+    # pendientes. La cola está en MySQL y no depende de que el worker que recibe
+    # /status sea el mismo que intentó borrar la imagen durante la caída.
+    if CACHE_ENABLED and database_status == 'connected' and cache_status == 'connected':
+        reconcile_orphaned_image_cache()
+        process_pending_image_invalidations()
 
     read_only = database_status != 'connected'
     offline_cache_available = bool(read_only and cache_available and cache_get(CATALOG_CACHE_KEY))
@@ -230,6 +420,13 @@ def status():
 
 @app.get('/fish/<int:fish_id>/image')
 def fish_image(fish_id):
+    # Antes de servir una imagen cacheada, procesa borrados que quedaron pendientes
+    # mientras Redis estaba desconectado. Si MySQL sigue caído, la función no borra
+    # nada y se puede seguir usando la imagen cacheada para el modo offline.
+    if CACHE_ENABLED:
+        reconcile_orphaned_image_cache()
+        process_pending_image_invalidations()
+
     image_key = f'aquarium:fish:{fish_id}:image'
     mime_key = f'aquarium:fish:{fish_id}:mime'
     cached_image = cache_get(image_key)
@@ -293,7 +490,7 @@ def create_fish():
         if isinstance(raw_stock, bool) or str(raw_stock).strip() == '':
             raise ValueError
         stock = int(raw_stock)
-        if str(stock) != str(raw_stock).strip() or stock < 0 or stock > 4294967295:
+        if str(stock) != str(raw_stock).strip() or stock < 0 or stock > MAX_STOCK:
             raise ValueError
     except (InvalidOperation, ValueError, TypeError):
         return error_response('El precio o el stock no tienen un formato válido.', 400)
@@ -353,15 +550,34 @@ def update_stock(fish_id):
     try:
         connection = get_db_connection()
         cursor = connection.cursor()
-        cursor.execute('UPDATE fish SET stock = stock + %s WHERE id = %s AND stock + %s >= 0',
-                       (delta, fish_id, delta))
+        if delta == 1:
+            # La condición se evalúa dentro del UPDATE: evita el desbordamiento
+            # de INT UNSIGNED incluso si llegan dos incrementos simultáneos.
+            cursor.execute(
+                'UPDATE fish SET stock = stock + 1 WHERE id = %s AND stock < %s',
+                (fish_id, MAX_STOCK),
+            )
+        else:
+            cursor.execute(
+                'UPDATE fish SET stock = stock - 1 WHERE id = %s AND stock > 0',
+                (fish_id,),
+            )
+
         if cursor.rowcount != 1:
             connection.rollback()
             cursor.execute('SELECT stock FROM fish WHERE id = %s', (fish_id,))
             row = cursor.fetchone()
             if row is None:
                 return error_response('No se ha encontrado ese pez en el catálogo.', 404)
-            return error_response('El stock ya es cero; no se puede reducir más.', 409)
+            current_stock = int(row[0])
+            if delta == 1 and current_stock >= MAX_STOCK:
+                return error_response(
+                    f'El stock ha alcanzado el máximo permitido ({MAX_STOCK} unidades).',
+                    409,
+                )
+            if delta == -1 and current_stock <= 0:
+                return error_response('El stock ya es cero; no se puede reducir más.', 409)
+            return error_response('No se ha podido modificar el stock por un conflicto con su valor actual.', 409)
         connection.commit()
         fish = get_fish_by_id(connection, fish_id)
         get_all_fish(connection)  # refresca el snapshot del catálogo en Redis
@@ -384,13 +600,27 @@ def delete_fish(fish_id):
     cursor = None
     try:
         connection = get_db_connection()
+        if CACHE_ENABLED:
+            ensure_image_cache_invalidations_table(connection)
         cursor = connection.cursor()
         cursor.execute('DELETE FROM fish WHERE id = %s', (fish_id,))
         if cursor.rowcount != 1:
             connection.rollback()
             return error_response('No se ha encontrado ese pez en el catálogo.', 404)
+
+        if CACHE_ENABLED:
+            # La marca se confirma junto con el DELETE. Si Redis está caído, queda
+            # guardada en MySQL para que otro worker la procese cuando Redis vuelva.
+            cursor.execute(
+                '''INSERT INTO fish_image_cache_invalidations (fish_id)
+                   VALUES (%s)
+                   ON DUPLICATE KEY UPDATE invalidated_at = CURRENT_TIMESTAMP''',
+                (fish_id,),
+            )
+
         connection.commit()
-        invalidate_image_cache(fish_id)
+        if CACHE_ENABLED:
+            process_pending_image_invalidations()
         get_all_fish(connection)
         return jsonify(ok=True, id=fish_id)
     except MySQLError:
