@@ -30,3 +30,26 @@ resource "docker_container" "nginx" {
     container_path = "/usr/share/nginx/html"
   }
 }
+
+resource "docker_service" "nginx_service" {
+  name = "nginx_service"
+
+  task_spec {
+    container_spec {
+      image = docker_image.nginx.repo_digest
+    }
+  }
+
+  mode {
+    replicated {
+      replicas = 2
+    }
+  }
+
+  endpoint_spec {
+    ports {
+      published_port = 8081
+      target_port = 80
+    }    
+  }
+}
