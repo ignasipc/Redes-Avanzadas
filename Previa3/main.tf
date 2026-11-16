@@ -21,7 +21,7 @@ resource "docker_container" "nginx" {
   image  = docker_image.nginx.image_id
 
   ports {
-    external = 8080
+    external = var.external_port
     internal = 80
   }
 
@@ -48,8 +48,15 @@ resource "docker_service" "nginx_service" {
 
   endpoint_spec {
     ports {
-      published_port = 8081
+      published_port = var.external_port
       target_port = 80
     }    
   }
+}
+
+# Configuración de la variable del puerto externo
+variable "external_port" {
+  description = "Puerto externo del contenedor Nginx"
+  type        = number
+  default     = 8080
 }
