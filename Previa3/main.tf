@@ -9,16 +9,16 @@ terraform {
 
 provider "docker" {}
 
-# Pulls the image
+# Pull de la imagen nginx
 resource "docker_image" "nginx" {
   name         = "nginx:latest"
   keep_locally = true
 }
 
-# Create a container
+# Crear un contenedor
 resource "docker_container" "nginx" {
-  name   = "nginx"
-  image  = docker_image.nginx.image_id
+  name  = "nginx"
+  image = docker_image.nginx.image_id
 
   ports {
     external = var.external_port
@@ -31,6 +31,7 @@ resource "docker_container" "nginx" {
   }
 }
 
+# Crea un servicio del contenedor
 resource "docker_service" "nginx_service" {
   name = "nginx_service"
 
@@ -49,8 +50,8 @@ resource "docker_service" "nginx_service" {
   endpoint_spec {
     ports {
       published_port = var.external_port
-      target_port = 80
-    }    
+      target_port    = 80
+    }
   }
 }
 
