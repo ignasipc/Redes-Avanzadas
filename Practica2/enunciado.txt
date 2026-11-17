@@ -1,0 +1,22 @@
+Elegir el tipo de politica y saber por qué
+Elegir el balanceador de carga que vamos a usar, pedirle a la IA pero saber por qué ha elegido ese
+
+Recomienda el prometheus y grafana, no nos preguntará mucho el por qué
+
+Tiene que producir logs, si no lo hace, tenemos que crearlo
+
+En MinIO guardamos datos estáticos! no otra cosa
+
+Un MinIO para cada entorno
+
+Alta disponibilidad en el entorno dev = solo una réplica y puede caerse, no pasa nada
+
+
+En el entorno prod la alta disponibilidad de la monitorización no es necesaria al no estar en el enunciado.
+
+Si es necesaria la alta disponibilidad del entorno de la web en prod
+
+Si cambio una variable en terraform debemos saber hacer el ejercicio de saber que pasará antes de realizar el 'terraform plan'
+
+
+Primer punto es pasar lo de docker a terraform, luego implementar un balanceador de carga, luego cuando tenga un dashboard 
