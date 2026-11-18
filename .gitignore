@@ -24,3 +24,6 @@ venv/
 
 # Crash log files
 crash.log
+
+# Archivo que se debe borrar más adelante al finalizar la práctica
+Practica2/enunciado.txt
