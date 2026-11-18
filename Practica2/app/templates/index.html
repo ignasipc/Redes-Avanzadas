@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es" data-environment="{{ environment }}" data-offline-mode="{{ 'true' if offline_mode else 'false' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d3445">
+  <title>Aquarium | Inventario de peces</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Aquarium, inicio">
+      <span class="brand-mark" aria-hidden="true">≈</span>
+      <span class="brand-copy">
+        <span class="brand-name">AQUARIUM</span>
+        <span class="brand-caption">Catálogo de peces</span>
+      </span>
+    </a>
+
+    <div class="system-status" aria-label="Estado de los servicios">
+      <div class="status-item">
+        <span class="status-dot status-dot--off" id="mysql-dot" aria-hidden="true"></span>
+        <span class="status-label">MySQL</span>
+        <span class="status-value" id="mysql-status">Comprobando…</span>
+      </div>
+      <div class="status-item" id="redis-status-item">
+        <span class="status-dot status-dot--off" id="redis-dot" aria-hidden="true"></span>
+        <span class="status-label">Redis</span>
+        <span class="status-value" id="redis-status">Comprobando…</span>
+      </div>
+      <span class="environment-tag" id="environment-tag">PRODUCCIÓN</span>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow">GESTIÓN DE INVENTARIO</p>
+        <h1>Catálogo de peces</h1>
+        <p class="page-description">Consulta y gestiona los peces disponibles en la tienda.</p>
+      </div>
+      <button class="button button-primary" id="open-modal" type="button" {% if offline_mode %}disabled{% endif %}>
+        <span class="button-plus" aria-hidden="true">+</span>
+        Añadir pez
+      </button>
+    </section>
+
+    <section class="summary-row" aria-label="Resumen del inventario">
+      <div class="summary-card">
+        <span class="summary-icon summary-icon--blue" aria-hidden="true">♧</span>
+        <div><span class="summary-label">Especies en catálogo</span><strong id="species-count">0</strong></div>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon summary-icon--green" aria-hidden="true">◉</span>
+        <div><span class="summary-label">Unidades en stock</span><strong id="stock-count">0</strong></div>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon summary-icon--gold" aria-hidden="true">€</span>
+        <div><span class="summary-label">Productos agotados</span><strong id="out-of-stock-count">0</strong></div>
+      </div>
+    </section>
+
+    <section class="catalog-panel" aria-labelledby="catalog-title">
+      <div class="catalog-toolbar">
+        <div class="catalog-title-wrap">
+          <h2 id="catalog-title">Todos los peces</h2>
+          <span class="result-count" id="result-count">0 productos</span>
+        </div>
+        <div class="filters" role="search" aria-label="Filtrar catálogo">
+          <label class="search-box">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="search-input" type="search" placeholder="Buscar pez o especie…" autocomplete="off" aria-label="Buscar pez o especie">
+          </label>
+          <label class="select-wrap">
+            <span class="visually-hidden">Tipo de agua</span>
+            <select id="water-filter">
+              <option value="">Todos los tipos de agua</option>
+              <option value="dulce">Agua dulce</option>
+              <option value="salada">Agua salada</option>
+            </select>
+          </label>
+          <label class="select-wrap">
+            <span class="visually-hidden">Temperatura</span>
+            <select id="temperature-filter">
+              <option value="">Todas las temperaturas</option>
+              <option value="fria">Agua fría</option>
+              <option value="calida">Agua cálida</option>
+            </select>
+          </label>
+          <label class="select-wrap">
+            <span class="visually-hidden">Disponibilidad</span>
+            <select id="stock-filter">
+              <option value="">Cualquier disponibilidad</option>
+              <option value="available">En stock</option>
+              <option value="empty">Agotados</option>
+            </select>
+          </label>
+          <button class="button button-quiet" id="clear-filters" type="button">Limpiar</button>
+        </div>
+      </div>
+
+      {% if catalog_error %}
+      <div class="catalog-error" id="catalog-error" role="alert">{{ catalog_error }}</div>
+      {% endif %}
+
+      <div class="fish-grid" id="fish-grid" aria-live="polite">
+        {% for fish in fish_list %}
+        <article class="fish-card"
+                 data-id="{{ fish.id }}"
+                 data-name="{{ fish.name|lower }}"
+                 data-species="{{ fish.species|lower }}"
+                 data-water="{{ fish.water_type }}"
+                 data-temperature="{{ fish.temperature }}"
+                 data-stock="{{ fish.stock }}">
+          <div class="fish-visual fish-visual--{% if fish.water_type == 'salada' %}coral{% elif fish.temperature == 'fria' %}mint{% else %}aqua{% endif %}">
+            {% if fish.image_mime_type %}<img class="fish-image" src="/fish/{{ fish.id }}/image" alt="{{ fish.name }}" loading="lazy">{% else %}<span class="fish-image-placeholder" aria-hidden="true">{% if fish.water_type == 'salada' %}🐠{% else %}🐟{% endif %}</span>{% endif %}
+            {% if not offline_mode %}<span class="water-chip">{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Agua salada{% endif %}</span>{% endif %}
+          </div>
+          <div class="fish-card-content">
+            <div class="fish-title-row">
+              <h3>{{ fish.name }}</h3>
+              <span class="stock-dot {% if fish.stock > 0 %}stock-dot--available{% else %}stock-dot--empty{% endif %}" title="{% if fish.stock > 0 %}Disponible{% else %}Agotado{% endif %}"></span>
+            </div>
+            {% if not offline_mode %}<p class="scientific-name">{{ fish.species }}</p>
+            <div class="fish-tags">
+              <span>{% if fish.temperature == 'fria' %}Agua fría{% else %}Agua cálida{% endif %}</span>
+              <span>{% if fish.water_type == 'dulce' %}Agua dulce{% else %}Marino{% endif %}</span>
+            </div>{% endif %}
+            <div class="fish-card-footer">
+              {% if not offline_mode %}<div>
+                <span class="price">{{ ('%.2f'|format(fish.price))|replace('.', ',') }} €</span>
+                <span class="price-caption">por unidad</span>
+              </div>{% else %}<div class="offline-basic-label">Disponible en caché</div>{% endif %}
+              <div class="stock-count {% if fish.stock == 0 %}stock-count--empty{% endif %}">
+                <strong>{{ fish.stock }}</strong>
+                <span>{% if fish.stock > 0 %}en stock{% else %}agotado{% endif %}</span>
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="empty-state" id="empty-state" hidden>
+        <span class="empty-icon" aria-hidden="true">⌕</span>
+        <h3>No se encontraron peces</h3>
+        <p>Prueba con otros términos o limpia los filtros.</p>
+        <button type="button" class="button button-secondary" id="empty-clear-filters">Limpiar filtros</button>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span> AQUARIUM <span class="footer-separator">·</span> Gestión de inventario</span>
+      <span class="footer-note">Inventario almacenado en MySQL</span>
+    </footer>
+  </main>
+
+  <div class="modal-backdrop" id="fish-modal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">INVENTARIO</p>
+          <h2 id="modal-title">Añadir un pez</h2>
+          <p id="modal-description" class="modal-description">Completa la información para incorporar un pez al catálogo.</p>
+        </div>
+        <button class="icon-button" id="close-modal" type="button" aria-label="Cerrar ventana">×</button>
+      </div>
+
+      <form id="fish-form" class="fish-form">
+        <div class="form-grid">
+          <label class="form-field">
+            <span>Nombre común <span class="required-mark">*</span></span>
+            <input name="name" type="text" placeholder="Ej. Pez payaso" maxlength="100" required>
+          </label>
+          <label class="form-field">
+            <span>Especie <span class="required-mark">*</span></span>
+            <input name="species" type="text" placeholder="Ej. Amphiprion ocellaris" maxlength="100" required>
+            <small>Introduce el nombre de la especie.</small>
+          </label>
+          <label class="form-field">
+            <span>Tipo de agua <span class="required-mark">*</span></span>
+            <select name="water_type" required>
+              <option value="" disabled selected>Selecciona el tipo de agua</option>
+              <option value="dulce">Agua dulce</option>
+              <option value="salada">Agua salada</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Temperatura <span class="required-mark">*</span></span>
+            <select name="temperature" required>
+              <option value="" disabled selected>Selecciona la temperatura</option>
+              <option value="fria">Agua fría</option>
+              <option value="calida">Agua cálida</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Precio por unidad (€) <span class="required-mark">*</span></span>
+            <input name="price" type="number" min="0" step="0.01" placeholder="0,00" required>
+          </label>
+          <label class="form-field">
+            <span>Unidades en stock <span class="required-mark">*</span></span>
+            <input name="stock" type="number" min="0" step="1" placeholder="0" required>
+          </label>
+          <label class="form-field form-field--full">
+            <span>Imagen del pez <span class="optional-label">Opcional · JPG, PNG o WebP · máx. 5 MB</span></span>
+            <input type="file" id="fish-image" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+          </label>
+          <label class="form-field form-field--full">
+            <span>Descripción <span class="optional-label">Opcional</span></span>
+            <textarea name="description" rows="3" maxlength="500" placeholder="Añade información adicional sobre el pez..."></textarea>
+          </label>
+        </div>
+        <p class="form-note"><span aria-hidden="true">ⓘ</span> La especie se introduce como texto; las características con opciones disponibles se seleccionan en los desplegables.</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" id="cancel-modal" type="button">Cancelar</button>
+          <button class="button button-primary" type="submit">Añadir al catálogo <span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
