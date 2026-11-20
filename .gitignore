@@ -22,6 +22,9 @@ venv/
 *.tfstate
 *.tfstate.*
 
+# Ficheros con contraseñas
+secrets.auto.tfvars
+
 # Crash log files
 crash.log
 
