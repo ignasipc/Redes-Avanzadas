@@ -11,4 +11,6 @@ module "aquarium" {
   mysql_user          = "ignasi"
   mysql_password      = var.mysql_password
   mysql_root_password = var.mysql_root_password
+  web_replicas = 2
+  lb_policy    = "leastconn"
 }

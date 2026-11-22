@@ -144,7 +144,8 @@ resource "docker_container" "cache" {
 
 # Aplicación (Flask + gunicorn). También sirve el frontend (templates/ y static/).
 resource "docker_container" "web" {
-  name    = "${local.prefix}-web"
+  count   = var.web_replicas
+  name    = "${local.prefix}-web-${count.index + 1}"
   image   = docker_image.web.image_id
   restart = "unless-stopped"
 
@@ -166,11 +167,6 @@ resource "docker_container" "web" {
       "REDIS_PORT=6379",
     ] : []
   )
-
-  ports {
-    internal = 5000
-    external = var.web_port
-  }
 
   networks_advanced {
     name = docker_network.internal.name

@@ -42,3 +42,25 @@ variable "mysql_root_password" {
   type        = string
   sensitive   = true
 }
+
+variable "web_replicas" {
+  description = "Número de instancias de la web detrás del balanceador."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.web_replicas >= 1
+    error_message = "Debe haber al menos una instancia."
+  }
+}
+
+variable "lb_policy" {
+  description = "Política de reparto: roundrobin, leastconn o source."
+  type        = string
+  default     = "roundrobin"
+
+  validation {
+    condition     = contains(["roundrobin", "leastconn", "source"], var.lb_policy)
+    error_message = "lb_policy debe ser roundrobin, leastconn o source."
+  }
+}
