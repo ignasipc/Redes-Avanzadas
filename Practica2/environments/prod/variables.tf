@@ -11,3 +11,9 @@ variable "mysql_root_password" {
   type        = string
   sensitive   = true
 }
+
+variable "grafana_admin_password" {
+  description = "Contraseña del usuario admin de Grafana (PROD)."
+  type        = string
+  sensitive   = true
+}

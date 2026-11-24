@@ -16,8 +16,9 @@ resource "docker_container" "lb" {
   upload {
     file = "/usr/local/etc/haproxy/haproxy.cfg"
     content = templatefile("${path.module}/haproxy.cfg.tftpl", {
-      policy   = var.lb_policy
-      backends = docker_container.web[*].name
+      policy          = var.lb_policy
+      backends        = docker_container.web[*].name
+      metrics_enabled = var.enable_monitoring
     })
   }
 
@@ -29,5 +30,12 @@ resource "docker_container" "lb" {
 
   networks_advanced {
     name = docker_network.internal.name
+  }
+
+  dynamic "networks_advanced" {
+    for_each = module.monitoring[*].metrics_network
+    content {
+      name = networks_advanced.value
+    }
   }
 }

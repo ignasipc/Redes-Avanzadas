@@ -32,3 +32,12 @@ backend aquarium_web
 %{ for name in backends ~}
     server ${name} ${name}:5000
 %{ endfor ~}
+
+%{ if metrics_enabled ~}
+
+# Métricas para Prometheus (solo accesible desde la red interna "metrics").
+frontend metricas
+    bind *:8404
+    no log
+    http-request use-service prometheus-exporter if { path /metrics }
+%{ endif ~}

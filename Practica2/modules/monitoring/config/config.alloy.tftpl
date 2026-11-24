@@ -1,0 +1,44 @@
+// Configuración de Alloy generada por Terraform (monitoring/main.tf).
+// Recorrido de los logs: contenedores -> Docker -> Alloy -> Loki.
+
+// 1. Descubre los contenedores de este entorno preguntando a Docker.
+discovery.docker "contenedores" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name   = "name"
+    values = ["${prefix}-"]
+  }
+}
+
+// 2. Etiquetas de cada línea de log: nombre del contenedor y flujo (stdout / stderr).
+discovery.relabel "etiquetas" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+}
+
+// 3. Lee los logs de esos contenedores.
+loki.source.docker "contenedores" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.contenedores.targets
+  labels        = { "environment" = "${environment}" }
+  relabel_rules = discovery.relabel.etiquetas.rules
+  forward_to    = [loki.write.loki.receiver]
+}
+
+// 4. Los envía a Loki.
+loki.write "loki" {
+  endpoint {
+    url = "http://${loki}:3100/loki/api/v1/push"
+  }
+}

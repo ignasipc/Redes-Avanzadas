@@ -13,4 +13,6 @@ module "aquarium" {
   mysql_root_password = var.mysql_root_password
   web_replicas = 2
   lb_policy    = "leastconn"
+  enable_monitoring      = true
+  grafana_admin_password = var.grafana_admin_password
 }

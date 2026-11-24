@@ -1,0 +1,10 @@
+# Le dice a Grafana que cargue los dashboards (.json) de esta carpeta al arrancar.
+apiVersion: 1
+
+providers:
+  - name: aquarium
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
